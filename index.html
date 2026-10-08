@@ -336,7 +336,7 @@ const DESC = {
   element: { none: '属性なし：ダメージ +15%', fire: 'やけど：2秒間じわじわダメージ', ice: 'こおり：しばらく相手の動きを遅くする',
              thunder: 'しびれ：当てると相手が少し長く止まる', poison: 'どく：5秒間ずっとダメージ', wind: 'かぜ：ふっとばし +50%' },
   skill: { dash: '突進して体当たり', shot: '大きな気弾を撃つ', shield: '1.5秒間無敵、弾を跳ね返す',
-           heal: 'HPを18回復', quake: '周りの敵を打ち上げる', blink: '相手の背後にワープ＋一瞬無敵' },
+           heal: 'HPを18回復', quake: '周りの敵を打ち上げる', blink: '相手の背後にワープ' },
 };
 const ELEM_COLOR = { none: 0xffffff, fire: 0xff5a1f, ice: 0x66ddff, thunder: 0xffee33, poison: 0x7dff4a, wind: 0xc8fff0 };
 const WEAPONS = {
@@ -375,6 +375,8 @@ const KB = { base: 0.45, grow: 2.5, lift: 0.1, liftMax: 6, airDrag: 1.4 };
 const ORB_SPEED = 0.75;    // 魔法玉の弾の速さ（見てからよけられるように少し遅め）
 const JUST_GUARD = 0.25;
 const JUST_LOCK = 0.9;     // ジャストガードされた側は、この秒数ガードもステップもできない（反撃が必ず入る）   // ガードを押してからこの秒数以内に受けるとジャストガード（スマホの遅れも考えて広め）
+// 1発で溜まる必殺ゲージの上限（どんなに強い攻撃でも、必殺技には最低3回当てる必要がある）
+const SP_HIT_CAP = 0.34;
 const SKILL_COST = { dash: 37, shot: 25, shield: 54, heal: 34, quake: 35, blink: 22 };
 // 属性のおまけ効果（どれも「無属性のダメージ+15%」と同じくらいの価値になるよう CPU 総当たりで調整）
 const ELEM_FX = { burn: 2, burnDps: 2.21, poison: 5, poisonDps: 1.589, slow: 2.3, stun: 0.19, noneBonus: 1.18, windKnock: 1.315 };
@@ -1353,7 +1355,6 @@ class Fighter {
           this.vel.set(0, 0, 0);
           this.yaw = this.targetYaw = Math.atan2(opp.pos.x - nx, opp.pos.z - nz);
         }
-        this.invuln = 0.35;
         burst(this.center(), 0xc084fc, 14, 5, 0.12, 0, 0.4);
         break;
       }
@@ -1510,7 +1511,7 @@ function applyHit(att, tgt, dmg, knock, dir, elem, lift = 0, bySkill = false, br
     const push = knock * 0.25 * (1 + 2 * worn);         // 端で固めていると場外に押し出される
     tgt.vel.x += dir.x * push; tgt.vel.z += dir.z * push;
     tgt.flash = 0.05;
-    if (att) { att.vel.x -= dir.x * 3; att.vel.z -= dir.z * 3; if (!bySkill) att.sp = Math.min(1, att.sp + dmg * 0.5 / SKILL_COST[att.st.skill]); }
+    if (att) { att.vel.x -= dir.x * 3; att.vel.z -= dir.z * 3; if (!bySkill) att.sp = Math.min(1, att.sp + Math.min(SP_HIT_CAP, dmg * 0.5 / SKILL_COST[att.st.skill])); }
     if (tgt.gm <= 0) {
       tgt.gm = 0; tgt.guarding = false; tgt.status.stun = 1.3; tgt.gmDelay = 1.5;
       sfx('big'); G.shake = Math.max(G.shake, 0.4);
@@ -1532,7 +1533,7 @@ function applyHit(att, tgt, dmg, knock, dir, elem, lift = 0, bySkill = false, br
   }
   const dm = dmg * (elem === 'none' ? ELEM_FX.noneBonus : 1) * tgt.st.def;
   tgt.hp -= dm;
-  if (att && !bySkill) att.sp = Math.min(1, att.sp + dm / SKILL_COST[att.st.skill]);
+  if (att && !bySkill) att.sp = Math.min(1, att.sp + Math.min(SP_HIT_CAP, dm / SKILL_COST[att.st.skill]));
   // 重さ負けしない：ハンマー・オノの振りかぶり中は、軽い武器（グローブ・ヤリ・魔法玉）の攻撃ではひるまない（ため攻撃中は除く）
   const tw = tgt.st.weapon;
   if (tw.armor && att && att.st.weapon.light && !bySkill && tgt.state === 'attack' && !tgt.charged && tgt.atkT < tw.wind + tw.active && tgt.hp > 0) {
