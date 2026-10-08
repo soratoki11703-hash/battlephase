@@ -687,9 +687,10 @@ function finishCharacter(b, root, inner, accM, info, parts) {
   const shield = new THREE.Mesh(new THREE.SphereGeometry(1.1, 24, 16),
     new THREE.MeshBasicMaterial({ color: 0x7fe3ff, transparent: true, opacity: 0.28, depthWrite: false }));
   shield.position.y = 0.9; shield.visible = false; inner.add(shield);
-  const guard = new THREE.Mesh(new THREE.CylinderGeometry(0.72, 0.72, 0.05, 6),
-    new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.4, depthWrite: false }));
-  guard.rotation.x = Math.PI / 2; guard.position.set(0, 0.85, 0.8); guard.visible = false; inner.add(guard);
+  // ガードの盾：体の前を覆う半球のドーム（どの角度から見ても形が分かる）
+  const guard = new THREE.Mesh(new THREE.SphereGeometry(0.95, 28, 16, 0, Math.PI),
+    new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.4, depthWrite: false, side: THREE.DoubleSide }));
+  guard.scale.z = 0.75; guard.position.set(0, 0.85, 0.15); guard.visible = false; inner.add(guard);
   const stars = new THREE.Group(); stars.position.y = headTop + 0.25; stars.visible = false; inner.add(stars);
   for (let i = 0; i < 3; i++) {
     const s = new THREE.Mesh(new THREE.OctahedronGeometry(0.09), new THREE.MeshBasicMaterial({ color: 0xffee33 }));
@@ -816,7 +817,7 @@ function sfx(kind) {
       case 'skill': tone(400, 1200, 0.25, 'sawtooth', 0.07); break;
       case 'block': tone(1200, 900, 0.15, 'triangle', 0.15); break;
       case 'guard': tone(1500, 1350, 0.28, 'square', 0.07); tone(2250, 2000, 0.22, 'triangle', 0.09); tone(980, 900, 0.32, 'sine', 0.12); noise(0.05, 0.12, 4000); break;
-      case 'tap': tone(1800, 1200, 0.04, 'square', 0.035); break;
+      case 'tap': tone(1800, 1200, 0.04, 'square', 0.08); tone(260, 180, 0.05, 'sine', 0.12); break;
       case 'shot': tone(900, 300, 0.15, 'square', 0.06); break;
       case 'ko': tone(600, 80, 0.8, 'sawtooth', 0.15); noise(0.6, 0.3, 150); break;
       case 'select': tone(660, 990, 0.06, 'square', 0.05); break;
@@ -903,7 +904,7 @@ function buildTouch(players) {
       const b = e.target.closest('.tb');
       if (b) {
         e.preventDefault();
-        b.setPointerCapture?.(e.pointerId);   // 指がボタンの外にずれても離したときを拾う
+        try { b.setPointerCapture(e.pointerId); } catch { /* 取れなくても押した処理は続ける */ }   // 指がボタンの外にずれても離したときを拾う
         touchIn[pi][b.dataset.b] = true; b.classList.add('on');
         if (b.dataset.b === 'atk') touchIn[pi].atkHeld = true;
         // 押した手応え：沈む・光る・輪が広がる・カチッと鳴る・（対応機種は）ブルッと震える
@@ -1003,9 +1004,9 @@ function guardRipple(f) {
   const m = new THREE.Mesh(new THREE.RingGeometry(0.62, 0.78, 6), new THREE.MeshBasicMaterial({ color: 0xbfe9ff, transparent: true, side: THREE.DoubleSide, depthWrite: false }));
   const fw = f.fwd;
   m.position.set(f.pos.x + fw.x * 0.8 * f.b.size, f.pos.y + 0.85 * f.b.size, f.pos.z + fw.z * 0.8 * f.b.size);
-  m.rotation.y = f.yaw;
+  m.lookAt(camera.position);   // いつもカメラの方を向けて、真横から見ても見えるように
   scene.add(m);
-  effects.push({ t: 0, dur: 0.3, update(e) { const k = e.t / 0.3; m.scale.setScalar(1 + k * 1.4); m.material.opacity = 1 - k; }, dispose() { scene.remove(m); m.geometry.dispose(); m.material.dispose(); } });
+  effects.push({ t: 0, dur: 0.3, update(e) { const k = e.t / 0.3; m.lookAt(camera.position); m.scale.setScalar(1 + k * 1.6); m.material.opacity = 1 - k; }, dispose() { scene.remove(m); m.geometry.dispose(); m.material.dispose(); } });
 }
 function updateEffects(dt) {
   for (let i = effects.length - 1; i >= 0; i--) {
