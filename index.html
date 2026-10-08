@@ -208,6 +208,7 @@
   body.touch #pauseBtn { display: block; }
   body.touch .ctrl { display: none; }
   body.touch [data-go="2p"] { display: none; }
+  body:not(.ready) #title .big-btn { visibility: hidden; }   /* ゲームの準備ができるまでボタンを押せない */
   .mid { display: flex; flex-direction: column; align-items: center; }
 
   /* コード入力モーダル */
@@ -247,6 +248,10 @@
 </head>
 <body>
 
+<script>
+  // 読み込みの最初にスマホかどうかを決める（あとからボタンが消えて位置がずれ、押し間違えるのを防ぐ）
+  if (matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window || location.search.includes('touch')) document.body.classList.add('touch');
+</script>
 <div id="title" class="screen on">
   <h1 class="logo">バトルフェーズ</h1>
   <p class="sub">つくって、すぐ、なぐりあえ。</p>
@@ -2357,6 +2362,7 @@ function loop() {
 }
 setupTitleDemo();
 updateTitleBest();
+document.body.classList.add('ready');
 loop();
 if (location.hash === '#watch') document.querySelector('[data-go=watch]').click();
 </script>
