@@ -344,11 +344,11 @@ const WEAPONS = {
   //   ・遠距離（魔法玉）は足を遅く・ふっとばしを弱く固定（同じ速さだと近距離が永遠に追いつけないため）
   //   数値は sim/tune.mjs（自動調整）で決定。npm run sim -- weapons で確認できる（CPU同士 49〜51%）
   sword:  { dmg: 10.2, reach: 1.75, wind: .12, active: .10, recover: .22, knock: 7,   move: 0.99, style: 'slash' },
-  hammer: { dmg: 22.4,  reach: 1.6,  wind: .34, active: .10, recover: .40, knock: 13.4, move: 0.79, style: 'slash', armor: true },
-  axe:    { dmg: 13.9,  reach: 1.65, wind: .22, active: .10, recover: .30, knock: 9.9,  move: 0.91, style: 'slash', armor: true },
+  hammer: { dmg: 21.2,  reach: 1.6,  wind: .34, active: .10, recover: .40, knock: 13.4, move: 0.8, style: 'slash', armor: true },
+  axe:    { dmg: 14.4,  reach: 1.65, wind: .22, active: .10, recover: .30, knock: 9.9,  move: 0.9, style: 'slash', armor: true },
   spear:  { dmg: 10.4, reach: 2.45, wind: .15, active: .10, recover: .30, knock: 8.8,  move: 0.99, style: 'thrust' , light: true },
-  orb:    { dmg: 13.6,  reach: 0,    wind: .15, active: .05, recover: .33, knock: 2.5,  move: 0.82, style: 'cast' , light: true },
-  fist:   { dmg: 9.2,   reach: 1.3,  wind: .06, active: .08, recover: .12, knock: 4.1,  move: 1.03, style: 'thrust' , light: true },
+  orb:    { dmg: 13.7,  reach: 0,    wind: .15, active: .05, recover: .33, knock: 2.5,  move: 0.82, style: 'cast' , light: true },
+  fist:   { dmg: 9.6,   reach: 1.3,  wind: .06, active: .08, recover: .12, knock: 4.1,  move: 1.01, style: 'thrust' , light: true },
 };
 const ICONS = {
   element: { none: '⚪', fire: '🔥', ice: '❄️', thunder: '⚡', poison: '☠️', wind: '🌪️' },
@@ -359,8 +359,6 @@ const PT_KEYS = [['hp', '❤️', '耐久', 'HPが増える'], ['def', '🛡️'
                  ['pow', '💪', 'パワー', '攻撃ダメージが上がる'], ['jmp', '🦘', 'ジャンプ', '高く跳べる'], ['wt', '🪨', 'ふんばり', 'ふっとびにくくなる']];
 const PT_TOTAL = 30, PT_MIN = 1, PT_MAX = 10;
 const defaultPts = () => Object.fromEntries(PT_KEYS.map(([k]) => [k, 5]));
-// 武器の長さがリーチにどれだけ効くか
-const REACH_LEN = { sword: 1, spear: 0.5, axe: 0.42, hammer: 0.2, orb: 0, fist: 0 };
 // 必殺は相手にダメージを与えると溜まる（この量で満タン）
 // 回避ステップ：0.2秒で移動、そのうち 0.05〜0.22秒が無敵、0.40秒まで動けない（読まれると狩られる）
 const DODGE = { speed: 15, move: 0.2, invEnd: 0.22, total: 0.40, cooldown: 0.5 };
@@ -373,7 +371,8 @@ const GUARD_DRAIN = 12;    // ガード押しっぱなしで1秒あたり減る�
 //   CPU同士で 場外17：HP0 22、1試合 平均50秒
 const KB = { base: 0.45, grow: 2.5, lift: 0.1, liftMax: 6, airDrag: 1.4 };
 const ORB_SPEED = 0.75;    // 魔法玉の弾の速さ（見てからよけられるように少し遅め）
-const JUST_GUARD = 0.25;   // ガードを押してからこの秒数以内に受けるとジャストガード（スマホの遅れも考えて広め）
+const JUST_GUARD = 0.25;
+const JUST_LOCK = 0.9;     // ジャストガードされた側は、この秒数ガードもステップもできない（反撃が必ず入る）   // ガードを押してからこの秒数以内に受けるとジャストガード（スマホの遅れも考えて広め）
 const SKILL_COST = { dash: 37, shot: 25, shield: 54, heal: 34, quake: 35, blink: 22 };
 // 属性のおまけ効果（どれも「無属性のダメージ+15%」と同じくらいの価値になるよう CPU 総当たりで調整）
 const ELEM_FX = { burn: 2, burnDps: 2.21, poison: 5, poisonDps: 1.589, slow: 2.3, stun: 0.19, noneBonus: 1.18, windKnock: 1.315 };
@@ -424,7 +423,7 @@ function getStats(b) {
   w.knock *= 0.7 + 0.3 * heavy;
   const slow = 0.75 + 0.25 * heavy + Math.max(0, grip - 0.55) * 0.3;
   w.wind *= slow; w.recover *= slow;
-  w.reach = Math.max(0.9, (w.reach + (grip - 0.55) + (b.bladeLen - 1) * REACH_LEN[b.wHead]) * (0.6 + 0.4 * s));
+  w.reach = Math.max(0.9, w.reach * (0.6 + 0.4 * s));   // 武器の形スライダーは見た目だけ（リーチも変わらない）
   w.projSpeed = 16 + grip * 7;
   w.projR = 0.22 * Math.sqrt(heavy);
   // バランス：移動速度は武器ごとの計算値（攻撃力が高いほど遅い）
@@ -1075,7 +1074,7 @@ class Fighter {
     this.sp ??= 0;   // 必殺ゲージ（0〜1）。ラウンドをまたいで持ち越す
     this.status = { burn: 0, poison: 0, slow: 0, stun: 0, shield: 0 };
     this.gm = this.st.guardMax; this.gmDelay = 0; this.guarding = false;
-    this.buf = { attack: 0, skill: 0, jump: 0, step: 0 }; this.chargeT = 0; this.charged = 0;
+    this.buf = { attack: 0, skill: 0, jump: 0, step: 0 }; this.chargeT = 0; this.charged = 0; this.guardLock = 0;
     this.guardAge = 9; this.prevGuardIn = false; this.dodgeT = 0; this.dodgeCd = 0; this.invuln = 0;
     this.grounded = true; this.jumps = 0; this.dead = false; this.out = false; this.walk = 0;
     this.m.root.rotation.set(0, yaw, 0);
@@ -1119,8 +1118,9 @@ class Fighter {
     this.prevGuardIn = inp.guard;
     if (guardPress && Math.hypot(inp.mx, inp.mz) > 0.5) { B.step = BUFFER; this.stepIn = [inp.mx, inp.mz]; }
     this.dodgeCd = Math.max(0, this.dodgeCd - dt);
+    this.guardLock = Math.max(0, this.guardLock - dt);
     this.invuln = Math.max(0, this.invuln - dt);
-    if (control && B.step > 0 && this.grounded && this.state === 'idle' && this.dodgeCd <= 0) {
+    if (control && B.step > 0 && this.grounded && this.state === 'idle' && this.dodgeCd <= 0 && this.guardLock <= 0) {
       const [sx, sz] = this.stepIn, l = Math.hypot(sx, sz);
       B.step = 0;
       this.state = 'dodge'; this.dodgeT = 0;
@@ -1138,8 +1138,10 @@ class Fighter {
     }
 
     // ガード：地上で何もしていない時に長押し。正面からの攻撃を軽減、ゲージが尽きるとブレイク
-    this.guarding = control && inp.guard && this.grounded && this.state === 'idle' && !inp.attack && !inp.skill && this.gm > 0;
-    this.guardAge = this.guarding ? this.guardAge + dt : 0;
+    this.guarding = control && inp.guard && this.grounded && this.state === 'idle' && !inp.attack && !inp.skill && this.gm > 0 && this.guardLock <= 0;
+    // ガードを押した瞬間から数える（ラウンド開始からずっと押していても正しく数える）
+    this.guardAge = this.guarding ? (this.wasGuarding ? this.guardAge + dt : 0) : 0;
+    this.wasGuarding = this.guarding;
     if (this.guarding) {
       this.gmDelay = 0.8;
       this.gm = Math.max(0, this.gm - GUARD_DRAIN * dt);   // 固まりすぎ防止
@@ -1467,7 +1469,11 @@ function applyHit(att, tgt, dmg, knock, dir, elem, lift = 0, bySkill = false, br
       burst(hitPos.clone().addScaledVector(dir, -0.6), 0xffd23f, 10, 4, 0.1, 0, 0.35);
       dmgNumber(hitPos.clone().setY(hitPos.y + 0.9), 'ジャストガード！', '#ffd23f');
       tgt.sp = Math.min(1, tgt.sp + 0.15);
-      if (att) { att.status.stun = Math.max(att.status.stun, 0.45); att.state = 'idle'; }
+      if (att) {
+        att.status.stun = Math.max(att.status.stun, 0.45); att.state = 'idle';
+        att.guardLock = JUST_LOCK;   // ジャストガードし返されないよう、少しの間ガード・ステップ不可
+        const ap = att.center(); dmgNumber(ap.setY(ap.y + 1.1), 'スキあり！', '#ff8a3d');
+      }
       return 'just';
     }
     // ガードしすぎは不利：ゲージが減るほど削りダメージと押し返しが大きくなる
