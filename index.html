@@ -20,6 +20,8 @@
     color-scheme: dark;
   }
   * { box-sizing: border-box; }
+  * { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  input, textarea { -webkit-user-select: text; user-select: text; }
   html, body { margin: 0; height: 100%; overflow: hidden; overscroll-behavior: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; background: var(--bg); color: var(--ink);
     font-family: "M PLUS Rounded 1c", system-ui, sans-serif; user-select: none; -webkit-user-select: none; }
   canvas { display: block; touch-action: none; }
@@ -180,7 +182,11 @@
     background: rgba(255,255,255,.16); backdrop-filter: blur(4px); touch-action: none; padding: 0; }
   .tb { white-space: nowrap; }
   .tb.jmp { font-size: 12px; }
-  .tb.on { background: rgba(255,210,63,.55); transform: scale(.93); }
+  .tb { transition: transform .06s, box-shadow .06s, filter .06s; overflow: visible; }
+  .tb.on { transform: scale(.86); filter: brightness(1.45); box-shadow: 0 0 0 4px rgba(255,255,255,.55), 0 0 22px rgba(255,255,255,.6); }
+  .tb .rip { position: absolute; inset: -3px; border-radius: 50%; border: 3px solid #fff; pointer-events: none; animation: rip .35s ease-out forwards; }
+  @keyframes rip { from { transform: scale(.85); opacity: .9; } to { transform: scale(1.55); opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { .tb .rip { display: none; } }
   .tb.atk { width: 84px; height: 84px; right: 0; bottom: 0; background: rgba(255,77,109,.45); font-size: 18px; }
   .tb.skl { width: 62px; height: 62px; right: 92px; bottom: 6px; background: rgba(255,210,63,.35); }
   .tb.jmp { width: 62px; height: 62px; right: 14px; bottom: 92px; background: rgba(63,169,255,.4); }
@@ -332,12 +338,12 @@ const WEAPONS = {
   //   ・攻撃が速いほどふっとばしが弱い：ふっとばし ∝ 1回の攻撃時間
   //   ・遠距離（魔法玉）は足を遅く・ふっとばしを弱く固定（同じ速さだと近距離が永遠に追いつけないため）
   //   数値は sim/tune.mjs（自動調整）で決定。npm run sim -- weapons で確認できる（CPU同士 49〜51%）
-  sword:  { dmg: 10.4, reach: 1.75, wind: .12, active: .10, recover: .22, knock: 7,   move: 0.99, style: 'slash' },
-  hammer: { dmg: 21.8,  reach: 1.6,  wind: .34, active: .10, recover: .40, knock: 13.4, move: 0.79, style: 'slash', armor: true },
-  axe:    { dmg: 15.6,  reach: 1.65, wind: .22, active: .10, recover: .30, knock: 9.9,  move: 0.88, style: 'slash', armor: true },
-  spear:  { dmg: 10.5, reach: 2.45, wind: .15, active: .10, recover: .30, knock: 8.8,  move: 0.99, style: 'thrust' , light: true },
-  orb:    { dmg: 10.6,  reach: 0,    wind: .15, active: .05, recover: .33, knock: 2.5,  move: 0.82, style: 'cast' , light: true },
-  fist:   { dmg: 10.1,   reach: 1.3,  wind: .06, active: .08, recover: .12, knock: 4.1,  move: 1, style: 'thrust' , light: true },
+  sword:  { dmg: 10.2, reach: 1.75, wind: .12, active: .10, recover: .22, knock: 7,   move: 0.99, style: 'slash' },
+  hammer: { dmg: 22.4,  reach: 1.6,  wind: .34, active: .10, recover: .40, knock: 13.4, move: 0.79, style: 'slash', armor: true },
+  axe:    { dmg: 13.9,  reach: 1.65, wind: .22, active: .10, recover: .30, knock: 9.9,  move: 0.91, style: 'slash', armor: true },
+  spear:  { dmg: 10.4, reach: 2.45, wind: .15, active: .10, recover: .30, knock: 8.8,  move: 0.99, style: 'thrust' , light: true },
+  orb:    { dmg: 13.6,  reach: 0,    wind: .15, active: .05, recover: .33, knock: 2.5,  move: 0.82, style: 'cast' , light: true },
+  fist:   { dmg: 9.2,   reach: 1.3,  wind: .06, active: .08, recover: .12, knock: 4.1,  move: 1.03, style: 'thrust' , light: true },
 };
 const ICONS = {
   element: { none: '⚪', fire: '🔥', ice: '❄️', thunder: '⚡', poison: '☠️', wind: '🌪️' },
@@ -361,6 +367,7 @@ const GUARD_DRAIN = 12;    // ガード押しっぱなしで1秒あたり減る�
 //   検証：HP満タンで 剣1.1・ハンマー5（1発で28%削るため）、残り3割のため攻撃で 剣9・ハンマー23（ステージ半径9）
 //   CPU同士で 場外17：HP0 22、1試合 平均50秒
 const KB = { base: 0.45, grow: 2.5, lift: 0.1, liftMax: 6, airDrag: 1.4 };
+const ORB_SPEED = 0.75;    // 魔法玉の弾の速さ（見てからよけられるように少し遅め）
 const JUST_GUARD = 0.25;   // ガードを押してからこの秒数以内に受けるとジャストガード（スマホの遅れも考えて広め）
 const SKILL_COST = { dash: 37, shot: 25, shield: 54, heal: 34, quake: 35, blink: 22 };
 // 属性のおまけ効果（どれも「無属性のダメージ+15%」と同じくらいの価値になるよう CPU 総当たりで調整）
@@ -808,6 +815,8 @@ function sfx(kind) {
       case 'jump': tone(300, 700, 0.12, 'sine', 0.08); break;
       case 'skill': tone(400, 1200, 0.25, 'sawtooth', 0.07); break;
       case 'block': tone(1200, 900, 0.15, 'triangle', 0.15); break;
+      case 'guard': tone(1500, 1350, 0.28, 'square', 0.07); tone(2250, 2000, 0.22, 'triangle', 0.09); tone(980, 900, 0.32, 'sine', 0.12); noise(0.05, 0.12, 4000); break;
+      case 'tap': tone(1800, 1200, 0.04, 'square', 0.035); break;
       case 'shot': tone(900, 300, 0.15, 'square', 0.06); break;
       case 'ko': tone(600, 80, 0.8, 'sawtooth', 0.15); noise(0.6, 0.3, 150); break;
       case 'select': tone(660, 990, 0.06, 'square', 0.05); break;
@@ -854,6 +863,15 @@ function readPad(i) {
   return out;
 }
 /* ---- タッチ操作（左：スティック／右：ボタン） ---- */
+// iPhone の長押しルーペ・コピーメニュー・ダブルタップ拡大を止める（入力欄は除く）
+for (const ev of ['touchstart', 'touchmove']) {
+  document.addEventListener(ev, e => {
+    if (mode === 'battle' && !e.target.closest('input, textarea, button.big-btn, #pauseBtn, #pause, #result')) e.preventDefault();
+  }, { passive: false });
+}
+document.addEventListener('contextmenu', e => { if (!e.target.closest('input, textarea')) e.preventDefault(); });
+document.addEventListener('dblclick', e => e.preventDefault());
+
 const touchIn = [0, 1].map(() => ({ mx: 0, mz: 0, atk: false, skl: false, jmp: false, grd: false }));
 let touchPlayers = [];
 function buildTouch(players) {
@@ -885,9 +903,13 @@ function buildTouch(players) {
       const b = e.target.closest('.tb');
       if (b) {
         e.preventDefault();
+        b.setPointerCapture?.(e.pointerId);   // 指がボタンの外にずれても離したときを拾う
         touchIn[pi][b.dataset.b] = true; b.classList.add('on');
         if (b.dataset.b === 'atk') touchIn[pi].atkHeld = true;
-        sfx('');
+        // 押した手応え：沈む・光る・輪が広がる・カチッと鳴る・（対応機種は）ブルッと震える
+        const rip = document.createElement('i'); rip.className = 'rip'; b.appendChild(rip); setTimeout(() => rip.remove(), 400);
+        sfx('tap');
+        try { navigator.vibrate?.(12); } catch { /* 振動できない端末 */ }
         // ガードは押している間だけ有効
         const off = () => { b.classList.remove('on'); if (b.dataset.b === 'grd') touchIn[pi].grd = false; if (b.dataset.b === 'atk') touchIn[pi].atkHeld = false; };
         b.addEventListener('pointerup', off, { once: true }); b.addEventListener('pointercancel', off, { once: true });
@@ -975,6 +997,15 @@ function ringFx(pos, color, maxR = 3.5, dur = 0.45) {
   const m = new THREE.Mesh(new THREE.TorusGeometry(1, 0.12, 8, 48), new THREE.MeshBasicMaterial({ color, transparent: true }));
   m.rotation.x = Math.PI / 2; m.position.copy(pos); m.position.y += 0.1; scene.add(m);
   effects.push({ t: 0, dur, update(e) { const k = e.t / dur; m.scale.setScalar(0.2 + k * maxR); m.material.opacity = 1 - k; }, dispose() { scene.remove(m); } });
+}
+// ガードした瞬間、盾の位置から六角形の波紋を広げる
+function guardRipple(f) {
+  const m = new THREE.Mesh(new THREE.RingGeometry(0.62, 0.78, 6), new THREE.MeshBasicMaterial({ color: 0xbfe9ff, transparent: true, side: THREE.DoubleSide, depthWrite: false }));
+  const fw = f.fwd;
+  m.position.set(f.pos.x + fw.x * 0.8 * f.b.size, f.pos.y + 0.85 * f.b.size, f.pos.z + fw.z * 0.8 * f.b.size);
+  m.rotation.y = f.yaw;
+  scene.add(m);
+  effects.push({ t: 0, dur: 0.3, update(e) { const k = e.t / 0.3; m.scale.setScalar(1 + k * 1.4); m.material.opacity = 1 - k; }, dispose() { scene.remove(m); m.geometry.dispose(); m.material.dispose(); } });
 }
 function updateEffects(dt) {
   for (let i = effects.length - 1; i >= 0; i--) {
@@ -1197,7 +1228,11 @@ class Fighter {
     if (before < w.wind && t >= w.wind) sfx(w.type === 'orb' ? 'shot' : 'swing');
     if (t >= w.wind && t < w.wind + w.active + 0.02) {
       if (w.type === 'orb') {
-        if (!this.hitDone) { this.hitDone = true; this.fireProjectile(false, this.charged); }
+        if (!this.hitDone) {
+          this.hitDone = true;
+          // 自分の弾が残っている間は次の弾は出ない（連射でハメられないように）
+          if (!G.projectiles.some(p => p.owner === this && !p.skill)) this.fireProjectile(false, this.charged);
+        }
       } else {
         if (this.b.element !== 'none' || w.type === 'hammer') {
           const tp = this.m.tip.getWorldPosition(new THREE.Vector3());
@@ -1242,7 +1277,7 @@ class Fighter {
     scene.add(m);
     const w = this.st.weapon;
     G.projectiles.push({
-      m, owner: this, vel: f.multiplyScalar(big ? 16 : w.projSpeed), life: big ? 1.4 : 1.1, r: size,
+      m, owner: this, vel: f.multiplyScalar(big ? 16 : w.projSpeed * ORB_SPEED), life: big ? 1.4 : 1.1, r: size,
       dmg: big ? 14 : w.dmg * (charged ? 1.4 + 0.6 * charged : 1), knock: big ? 11 : w.knock * (charged ? 1.3 + 0.4 * charged : 1),
       element: this.b.element, color, skill: big, breaker: charged > 0,
     });
@@ -1379,12 +1414,14 @@ class Fighter {
     for (const mm of m.mats) { mm.emissive.setHex(eh); mm.emissiveIntensity = ei; }
     m.shield.visible = S.shield > 0;
     m.guard.visible = this.guarding;
+    this.guardFlash = Math.max(0, (this.guardFlash || 0) - dt);
     if (m.guard.visible) {
       const g = this.gm / this.st.guardMax;               // 減るほど小さく・赤く
-      m.guard.scale.setScalar(0.45 + 0.55 * g);
+      m.guard.scale.setScalar((0.45 + 0.55 * g) * (1 + this.guardFlash * 1.8));   // 受けた瞬間ぐっと大きく
       if (this.guardAge <= JUST_GUARD) m.guard.material.color.setHex(0xffd23f);   // ジャストガード受付中は金色
       else m.guard.material.color.setRGB(1, 0.35 + 0.65 * g, 0.35 + 0.65 * g);
-      m.guard.material.opacity = 0.3 + 0.25 * g;
+      m.guard.material.opacity = Math.min(0.95, 0.3 + 0.25 * g + this.guardFlash * 3);
+      if (this.guardFlash > 0) m.guard.material.color.setHex(0xffffff);
     }
     if (m.shield.visible) m.shield.scale.setScalar(1 + Math.sin(t * 15) * 0.04);
     m.stars.visible = S.stun > 0; m.stars.rotation.y += dt * 6;
@@ -1442,11 +1479,17 @@ function applyHit(att, tgt, dmg, knock, dir, elem, lift = 0, bySkill = false, br
       burst(hitPos, 0xffffff, 18, 8, 0.16, 6, 0.5);
       dmgNumber(hitPos.clone().setY(hitPos.y + 0.9), 'ガードブレイク！', '#ff6b6b');
     } else {
-      sfx('block');
-      burst(hitPos.clone().addScaledVector(dir, -0.6), 0x9fd8ff, 8, 4, 0.1, 0, 0.25);
-      dmgNumber(hitPos.clone().setY(hitPos.y + 0.8), 'ガード', '#9fd8ff');
+      // ガードの手応え：ビビン！と鳴り、盾が大きく光って波紋が広がり、少し止まって揺れる
+      sfx('guard');
+      const sp = hitPos.clone().addScaledVector(dir, -0.6);
+      burst(sp, 0xffffff, 10, 6, 0.12, 0, 0.3);
+      burst(sp, 0x9fd8ff, 14, 5, 0.1, 0, 0.35);
+      guardRipple(tgt);
+      tgt.guardFlash = 0.18;
+      G.shake = Math.max(G.shake, 0.18);
+      dmgNumber(hitPos.clone().setY(hitPos.y + 0.8), 'ガード！', '#9fd8ff');
     }
-    G.hitstop = 0.03;
+    G.hitstop = 0.07;
     return;
   }
   const dm = dmg * (elem === 'none' ? ELEM_FX.noneBonus : 1) * tgt.st.def;
