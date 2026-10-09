@@ -365,7 +365,7 @@ const DESC = {
   skill: { dash: '突進して体当たり', shot: '大きな気弾を撃つ', shield: '1.5秒間無敵、弾を跳ね返す',
            heal: 'HPを18回復', quake: '周りの敵を打ち上げる', blink: '相手の背後にワープ。相手は一瞬ひるむ＋自分は一瞬無敵' },
   bsize: { S: '足が速くてジャンプが高い。そのかわり力は弱く、ふっとびやすい', M: 'バランス型',
-           L: '力が強くて、ふっとびにくい。リーチも少し長い。そのかわり足が遅く、体が大きいので当たりやすい' },
+           L: '力が強くて、ふっとびにくい。そのかわり足が遅くてジャンプが低く、体が大きいので当たりやすい' },
 };
 const ELEM_COLOR = { none: 0xffffff, fire: 0xff5a1f, ice: 0x66ddff, thunder: 0xffee33, poison: 0x7dff4a, wind: 0xc8fff0 };
 const WEAPONS = {
@@ -374,12 +374,12 @@ const WEAPONS = {
   //   ・攻撃が速いほどふっとばしが弱い：ふっとばし ∝ 1回の攻撃時間
   //   ・遠距離（魔法玉）は足を遅く・ふっとばしを弱く固定（同じ速さだと近距離が永遠に追いつけないため）
   //   数値は sim/tune.mjs（自動調整）で決定。npm run sim -- weapons で確認できる（CPU同士 49〜51%）
-  sword:  { dmg: 8.8, reach: 1.75, wind: .12, active: .10, recover: .22, knock: 7,   move: 1.04, style: 'slash' },
-  hammer: { dmg: 38.6,  reach: 1.6,  wind: .34, active: .10, recover: .40, knock: 13.4, move: 0.67, style: 'slash', armor: true },
-  axe:    { dmg: 10.2,  reach: 1.65, wind: .22, active: .10, recover: .30, knock: 9.9,  move: 0.99, style: 'slash', armor: true },
-  spear:  { dmg: 10.9, reach: 2.45, wind: .15, active: .10, recover: .30, knock: 8.8,  move: 0.97, style: 'thrust' , light: true },
-  orb:    { dmg: 8.6,  reach: 0,    wind: .15, active: .05, recover: .33, knock: 2.5,  move: 0.82, style: 'cast' , light: true },
-  fist:   { dmg: 12.5,   reach: 1.3,  wind: .06, active: .08, recover: .12, knock: 4.1,  move: 0.94, style: 'thrust' , light: true },
+  sword:  { dmg: 9.3, reach: 1.75, wind: .12, active: .10, recover: .22, knock: 7,   move: 1.02, style: 'slash' },
+  hammer: { dmg: 20.8,  reach: 1.6,  wind: .34, active: .10, recover: .40, knock: 13.4, move: 0.8, style: 'slash', armor: true },
+  axe:    { dmg: 12.9,  reach: 1.65, wind: .22, active: .10, recover: .30, knock: 9.9,  move: 0.93, style: 'slash', armor: true },
+  spear:  { dmg: 9.8, reach: 2.45, wind: .15, active: .10, recover: .30, knock: 8.8,  move: 1.01, style: 'thrust' , light: true },
+  orb:    { dmg: 15.2,  reach: 0,    wind: .15, active: .05, recover: .33, knock: 2.5,  move: 0.82, style: 'cast' , light: true },
+  fist:   { dmg: 11.7,   reach: 1.3,  wind: .06, active: .08, recover: .12, knock: 4.1,  move: 0.95, style: 'thrust' , light: true },
 };
 const ICONS = {
   element: { none: '⚪', fire: '🔥', ice: '❄️', thunder: '⚡', poison: '☠️', wind: '🌪️' },
@@ -409,9 +409,10 @@ const JUST_GUARD = 0.25;
 const JUST_LOCK = 0.9;     // ジャストガードされた側は、この秒数ガードもステップもできない（反撃が必ず入る）   // ガードを押してからこの秒数以内に受けるとジャストガード（スマホの遅れも考えて広め）
 // 1発で溜まる必殺ゲージの上限（どんなに強い攻撃でも、必殺技には最低3回当てる必要がある）
 const SP_HIT_CAP = 0.25;
-// 3段コンボ：タイミングよく攻撃を押すと3段までつながる。2段目は威力×0.47、3段目は×0.61（今の剣で合計がほぼ25）
+// 3段コンボ：on=false で無効（2026-10-09、ハメになって反撃の余地がなくなるため外した。魔法玉の3連射も同じ）
+//   on=true にすると、当たった直後に押すと3段までつながる（2段目は威力×0.47、3段目は×0.61）
 // 相手がやられっぱなしの間に受けるダメージは合計 cap まで。超えたら「コンボ抜け」で相手は少し無敵になる（無限ハメ防止）
-const COMBO = { cap: 25, steps: [1, 0.47, 0.61], stunPad: 0.12, knock: 0.15, finKnock: 1.2, burstInvuln: 0.6 };
+const COMBO = { on: false, cap: 25, steps: [1, 0.47, 0.61], stunPad: 0.12, knock: 0.15, finKnock: 1.2, burstInvuln: 0.6 };
 // CPUのつよさ：考える間隔（小さいほど速い）・攻撃する確率・弾への反応・ガード/ステップの多さ・コンボをつなぐ確率・必殺を使う確率
 const CPU_LV = [
   { name: 'よわい', think: 1.8, atk: 0.35, react: 0.2, guard: 0.4, step: 0.3, chain: 0.3, charge: 0.3, skill: 0.25 },
@@ -424,15 +425,15 @@ const ENDLESS_LV = [0, 2, 5, 9];
 // 体の大きさ：強さではなく「性格」が変わる。s＝見た目と当たり判定、pow＝攻撃力、spd＝足、jump＝ジャンプ、wt＝ふっとびにくさ、swing＝振りの時間（小さいほど速い）。リーチは全員同じ
 //   シミュレーターで 大53%・中50%・小47% になるよう手で調整（2026-10-09）。swing は 0.965〜0.975 の間に崖がある（1コマ差で攻撃後の有利が入れ替わる）ので近づけない
 const SIZE = {
-  S: { s: 0.85, pow: 0.96, spd: 1.08, jump: 1.05, wt: 0.94, swing: 0.975 },
+  S: { s: 0.85, pow: 0.96, spd: 1.08, jump: 1.05, wt: 0.94, swing: 1 },
   M: { s: 1, pow: 1, spd: 1, jump: 1, wt: 1, swing: 1 },
-  L: { s: 1.2, pow: 1.08, spd: 0.92, jump: 0.95, wt: 1.08, swing: 1.05 },
+  L: { s: 1.2, pow: 1.08, spd: 0.92, jump: 0.95, wt: 1.08, swing: 1.002 },
 };
 const sizeOf = b => (SIZE[b.bsize] || SIZE.M).s;
 const BLINK_STUN = 0.25;   // ワープされた相手がひるむ秒数
-const SKILL_COST = { dash: 41, shot: 22, shield: 84, heal: 47, quake: 33, blink: 44 };
+const SKILL_COST = { dash: 37, shot: 25, shield: 54, heal: 34, quake: 35, blink: 22 };
 // 属性のおまけ効果（どれも「無属性のダメージ+15%」と同じくらいの価値になるよう CPU 総当たりで調整）
-const ELEM_FX = { burn: 2, burnDps: 2.308, poison: 5, poisonDps: 1.722, slow: 2.665, stun: 0.136, noneBonus: 1.221, windKnock: 1.292 };
+const ELEM_FX = { burn: 2, burnDps: 1.71, poison: 5, poisonDps: 1.416, slow: 2.0, stun: 0.164, noneBonus: 1.185, windKnock: 1.325 };
 
 const NAME_A = ['ゴン','ピコ','ザン','モチ','ガル','ポン','キラ','ドド','メカ','ニャ','ボル','ルル','ジン','タコ','ベア','ズン','プリ','ギガ','チョコ','バク'];
 const NAME_B = ['','丸','ン','X','太郎','マン','ゴン','すけ','キング','ちゃん','ZERO','ボーイ','ドン'];
@@ -488,7 +489,7 @@ function getStats(b) {
   // 3段コンボの各段のダメージ：武器の威力 × COMBO.steps（威力・属性・大きさがコンボにも効く）
   // やられっぱなしで受けるダメージは COMBO.cap まで（applyHit で制限）。ハンマーはコンボなし＝1発で吹っ飛ばす
   w.chainDmg = COMBO.steps.map(k => w.dmg * k);
-  w.chainSteps = w.type === 'hammer' ? 1 : 3;
+  w.chainSteps = COMBO.on && w.type !== 'hammer' ? 3 : 1;
   st.weapon = w;
   st.element = b.element;
   st.skill = b.skill;
@@ -1560,7 +1561,7 @@ class Fighter {
   }
 }
 
-function applyHit(att, tgt, dmg, knock, dir, elem, lift = 0, bySkill = false, breaker = false, chainStun = 0) {
+function applyHit(att, tgt, dmg, knock, dir, elem, lift = 0, bySkill = false, breaker = false, chainStun = 0, noFx = false) {
   if (tgt.dead || G.phase !== 'fight') return;
   const hitPos = tgt.center();
   if (tgt.invuln > 0) {   // 回避ステップの無敵中
@@ -1648,10 +1649,12 @@ function applyHit(att, tgt, dmg, knock, dir, elem, lift = 0, bySkill = false, br
   tgt.hitstun = Math.max(0.15 + kb * 0.014, chainStun);
   tgt.state = 'idle';
   tgt.flash = 0.1;
-  if (elem === 'fire') tgt.status.burn = ELEM_FX.burn;
-  if (elem === 'ice') tgt.status.slow = ELEM_FX.slow;
-  if (elem === 'thunder') tgt.status.stun = Math.max(tgt.status.stun, tgt.hitstun + ELEM_FX.stun);   // 運要素なし：毎回少し長く止まる
-  if (elem === 'poison') tgt.status.poison = ELEM_FX.poison;
+  // noFx：属性のおまけ効果を付けない（魔法玉の3連射の途中の弾。重なると強すぎるため）
+  const fx = noFx ? null : elem;
+  if (fx === 'fire') tgt.status.burn = ELEM_FX.burn;
+  if (fx === 'ice') tgt.status.slow = ELEM_FX.slow;
+  if (fx === 'thunder') tgt.status.stun = Math.max(tgt.status.stun, tgt.hitstun + ELEM_FX.stun);   // 運要素なし：毎回少し長く止まる
+  if (fx === 'poison') tgt.status.poison = ELEM_FX.poison;
   if (tgt.hp <= 0) {
     if (bySkill) {
       G.skillKO = true;
@@ -1698,12 +1701,12 @@ function updateProjectiles(dt) {
           p.owner = f; p.vel.multiplyScalar(-1.2); p.life = 1; sfx('block');
         } else {
           const o = p.owner, w = o.st.weapon;
-          if (p.chain >= 0 && w.type === 'orb') {
+          if (p.chain >= 0 && w.type === 'orb' && w.chainSteps > 1) {
             // 魔法玉の3連射：途中の弾は相手をその場に止め、次の弾が届くまで待たせる
             const mid = p.chain < w.chainSteps - 1;
             const travel = Math.hypot(f.pos.x - o.pos.x, f.pos.z - o.pos.z) / (w.projSpeed * ORB.speed);
             const res = applyHit(o, f, w.chainDmg[p.chain], w.knock * (mid ? COMBO.knock : COMBO.finKnock), p.vel.clone().setY(0).normalize(), p.element, 0, false, false,
-                                 mid ? ORB.chain + w.wind + travel + COMBO.stunPad : 0);
+                                 mid ? ORB.chain + w.wind + travel + COMBO.stunPad : 0, mid);   // 属性の効果は最後の1発だけ
             if (mid && res === undefined && o.chain === p.chain) o.orbHit = ORB.chain;
           } else applyHit(p.owner, f, p.dmg, p.knock, p.vel.clone().setY(0).normalize(), p.element, 0, p.skill, p.breaker);
           gone = true;
