@@ -925,8 +925,10 @@ addEventListener('resize', () => {
    サウンド（WebAudioで簡単な効果音）
    ========================================================= */
 let AC = null;
+const MUTE = true;   // true で効果音をすべて止める（2026-10-10 ユーザーの希望で一時的にミュート。戻すときは false）
 function sfx(kind) {
   if (netRec()) NET.events.push(['sfx', kind]);
+  if (MUTE) return;
   try {
     AC ??= new (window.AudioContext || window.webkitAudioContext)();
     if (AC.state === 'suspended') AC.resume();
