@@ -164,6 +164,7 @@
   #shatter .pc { position: absolute; inset: 0; background-size: 100% 100%; will-change: transform, opacity; }
   #shatter svg { position: absolute; inset: 0; width: 100%; height: 100%; }
   #shatter .fl { position: absolute; inset: 0; background: #fff; }
+  #flash { position: fixed; inset: 0; pointer-events: none; z-index: 4; opacity: 0; }
   #dmg { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
   .dn { position: absolute; font-family: "Mochiy Pop One"; font-size: 26px; color: #fff; -webkit-text-stroke: 1.5px #000;
     transform: translate(-50%, -50%); white-space: nowrap; }
@@ -200,7 +201,7 @@
   .tbtns { position: absolute; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); right: calc(18px + env(safe-area-inset-right, 0px)); width: 180px; height: 160px; }
   .tpad.mirror .tbtns { right: auto; left: 18px; }
   .tb { position: absolute; border-radius: 50%; border: 3px solid rgba(255,255,255,.7); color: #fff; font: 800 15px "M PLUS Rounded 1c", system-ui, sans-serif;
-    background: rgba(255,255,255,.16); backdrop-filter: blur(4px); touch-action: none; padding: 0; }
+    background: rgba(255,255,255,.22); touch-action: none; padding: 0; }   /* すりガラス（backdrop-filter）は毎フレーム重いので使わない */
   .tb { white-space: nowrap; }
   .tb.jmp { font-size: 12px; }
   .tb { transition: transform .06s, box-shadow .06s, filter .06s; overflow: visible; }
@@ -328,6 +329,7 @@
     <span id="ctrl1">2P：矢印 移動 ／ K 攻撃 ／ L 必殺 ／ I ジャンプ ／ O ガード</span>
   </div>
 </div>
+<div id="flash"></div>
 <div id="dmg"></div>
 <div id="announce"></div>
 
@@ -436,6 +438,8 @@ const DODGE = { speed: 15, move: 0.2, invEnd: 0.22, total: 0.40, cooldown: 0.5 }
 const CHARGE = { hold: 0.35, min: 0.25, full: 0.8, max: 1.6, wind: 0.5, recover: 1.3 };   // hold：これ以上押し続けたらために入る
 const BUFFER = 0.15;       // 先行入力：この秒数以内に押したボタンは、動けるようになった瞬間に出る
 const GUARD_DRAIN = 12;    // ガード押しっぱなしで1秒あたり減るガードゲージ
+// ガードとこうげきの繰り返しを防ぐ：ガードを離したあと少しだけ攻撃できない／ガードで受けるとゲージが大きく減る（普通の攻撃3〜4発で割れる）／ガードされても必殺ゲージは溜まる
+const GUARD = { releaseLag: 0.2, blockDrain: 3.0, spOnBlock: 0.8 };
 // ふっとばし：低めの角度で飛ばし、空中でも減速する（強い攻撃ほど距離が二乗で伸びるのを防ぐ）
 //   検証：HP満タンで 剣1.1・ハンマー5（1発で28%削るため）、残り3割のため攻撃で 剣9・ハンマー23（ステージ半径9）
 //   CPU同士で 場外17：HP0 22、1試合 平均50秒
@@ -443,8 +447,13 @@ const KB = { base: 0.45, grow: 2.5, lift: 0.1, liftMax: 6, airDrag: 1.4 };
 // 魔法玉：speed＝弾の速さ（見てからよけられるように少し遅め）、chain＝当たってからこの秒数以内に押すと次の弾（3連射）、max＝同時に出せる弾の数
 const ORB = { speed: 0.75, chain: 0.5, max: 3 };
 const BASE = { hp: 100 };   // 体力（全員共通）
-const JUST_GUARD = 0.25;
-const JUST_LOCK = 0.9;     // ジャストガードされた側は、この秒数ガードもステップもできない（反撃が必ず入る）   // ガードを押してからこの秒数以内に受けるとジャストガード（スマホの遅れも考えて広め）
+const JUST_GUARD = 0.15;    // ガードを押してからこの秒数以内に受けるとジャストガード（9F。スマブラは約5Fだが、スマホの遅れも考えて少し広め）
+const JUST_LOCK = 0.9;     // ジャストガードされた側は、この秒数ガードもステップもできない（反撃が必ず入る）
+// 手応え（スマブラのフレームデータを参考に、攻撃の強さに比例させる。1F = 1/60秒）
+//   hitstop：当たった瞬間に画面全体が止まる時間 = (2 + ダメージ×0.45)F（剣 約6F・ハンマー 約11F、最大11F）。ガードされたときはその0.75倍
+//   blockStun：ガードで受けた側がガードを解けない時間 = ダメージ×0.004秒（剣2F・ハンマー5F）。重い武器はガードされると反撃を受ける
+const FEEL = { stopBase: 2, stopPerDmg: 0.45, stopMax: 11, guardStop: 0.75, blockStun: 0.004 };
+const hitStopOf = (dmg, k = 1) => Math.min(FEEL.stopMax, (FEEL.stopBase + dmg * FEEL.stopPerDmg) * k) / 60;
 // 1発で溜まる必殺ゲージの上限（どんなに強い攻撃でも、必殺技には最低3回当てる必要がある）
 const SP_HIT_CAP = 0.25;
 // 3段コンボ：on=false で無効（2026-10-09、ハメになって反撃の余地がなくなるため外した。魔法玉の3連射も同じ）
@@ -455,8 +464,8 @@ const COMBO = { on: false, cap: 25, steps: [1, 0.47, 0.61], stunPad: 0.12, knock
 //   aim：攻撃するときの狙いのずれ（ラジアン）。人はスティックで狙うので、弱いCPUほど狙いが甘い
 //   「つよい」は、シミュレーターの基準になっている以前の「ふつう」と同じ動き（バランス調整はこの強さで行っている）
 const CPU_LV = [
-  { name: 'よわい', think: 2.4, atk: 0.25, react: 0.1, guard: 0.15, step: 0.1, chain: 0.2, charge: 0.1, skill: 0.15, aim: 0.7 },
-  { name: 'ふつう', think: 1.5, atk: 0.45, react: 0.3, guard: 0.55, step: 0.5, chain: 0.6, charge: 0.35, skill: 0.35, aim: 0.35 },
+  { name: 'よわい', think: 3.0, atk: 0.18, react: 0.05, guard: 0.06, step: 0.04, chain: 0.1, charge: 0.05, skill: 0.1, aim: 0.9 },
+  { name: 'ふつう', think: 2.0, atk: 0.35, react: 0.2, guard: 0.3, step: 0.25, chain: 0.4, charge: 0.2, skill: 0.25, aim: 0.5 },
   { name: 'つよい', think: 1,   atk: 0.6,  react: 0.5, guard: 1,   step: 1,   chain: 1,   charge: 0.6, skill: 0.5, aim: 0 },
   { name: 'おに',   think: 0.4, atk: 0.85, react: 0.95, guard: 1.6, step: 2,  chain: 1,   charge: 0.9, skill: 1, aim: 0 },
 ];
@@ -473,7 +482,7 @@ const TUTORIAL = [
 const LS_TUT = 'battlephase_tutorial_v1';
 // オンライン対戦（ルームコード）：部屋を作った側（ホスト）が試合を計算し、入った側（ゲスト）は操作を送って結果を映す
 //   つなぐ仲介は PeerJS の無料サーバー。部屋のコード4ケタ → ID「battlephase-v1-コード」
-const NET = { role: null, me: 0, peer: null, conn: null, lastRx: 0, warnT: 0, builds: [null, null], again: [false, false], snap: null, remote: null, edges: {}, events: [], proj: new Map(), seq: 0 };
+const NET = { role: null, me: 0, peer: null, conn: null, lastRx: 0, warnT: 0, mute: false, builds: [null, null], again: [false, false], snap: null, remote: null, edges: {}, events: [], proj: new Map(), seq: 0 };
 const NET_PREFIX = 'battlephase-v1-';
 const NET_STATES = ['idle', 'attack', 'charge', 'dash', 'dodge'];
 const CPU_BASE_LV = 2;   // レベル指定のないCPU（観戦・シミュレーター）はこの強さ
@@ -834,7 +843,7 @@ if (IS_TOUCH) document.body.classList.add('touch');
 renderer.setPixelRatio(Math.min(devicePixelRatio, IS_TOUCH ? 1.5 : 2));
 renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.shadowMap.type = IS_TOUCH ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap;   // スマホは軽い影
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 document.body.prepend(renderer.domElement);
 // 画面割れ用レイヤー（キャンバスの直後に置き、HUDより下に重ねる）
@@ -856,7 +865,7 @@ function addLights(scene, shadowSize) {
   scene.add(new THREE.HemisphereLight(0xdfe8ff, 0x403060, 1.2));
   const sun = new THREE.DirectionalLight(0xffffff, 2.2);
   sun.position.set(6, 14, 8); sun.castShadow = true;
-  sun.shadow.mapSize.set(2048, 2048);
+  sun.shadow.mapSize.setScalar(IS_TOUCH ? 1024 : 2048);
   Object.assign(sun.shadow.camera, { left: -shadowSize, right: shadowSize, top: shadowSize, bottom: -shadowSize, near: 1, far: 50 });
   sun.shadow.bias = -0.0005;
   scene.add(sun);
@@ -1135,6 +1144,71 @@ function ringFx(pos, color, maxR = 3.5, dur = 0.45) {
   effects.push({ t: 0, dur, update(e) { const k = e.t / dur; m.scale.setScalar(0.2 + k * maxR); m.material.opacity = 1 - k; }, dispose() { scene.remove(m); } });
 }
 // ガードした瞬間、盾の位置から六角形の波紋を広げる
+// ===== 当たったときの演出（衝撃の輪・斬撃の線・属性ごとの粒・画面の光） =====
+const fxGeo = { plane: new THREE.PlaneGeometry(1, 1), ring: new THREE.RingGeometry(0.7, 1, 40), oct: new THREE.OctahedronGeometry(1), sph: new THREE.SphereGeometry(1, 10, 8) };
+function fxMesh(geo, color, opacity = 1) {
+  return new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color, transparent: true, opacity, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending }));
+}
+function fxFlash(alpha = 0.3, color = '#ffffff') {
+  if (netRec()) NET.events.push(['flash', alpha, color]);
+  const el = document.getElementById('flash');
+  if (!el || !el.animate) return;
+  el.style.background = color;
+  el.animate([{ opacity: alpha }, { opacity: 0 }], { duration: 220, easing: 'ease-out' });
+}
+function fxHit(pos, dir, elem, big) {
+  if (netRec()) NET.events.push(['fxhit', [pos.x, pos.y, pos.z], [dir.x, dir.z], elem, big ? 1 : 0]);
+  NET.mute = true;   // 中で使う burst などは送らない（受け取った側でもここから作る）
+  try {
+    const col = ELEM_COLOR[elem] ?? 0xffffff;
+    // 衝撃の輪（カメラの方を向いて広がる）
+    const ring = fxMesh(fxGeo.ring, big ? 0xfff3b0 : 0xffffff, 0.9);
+    ring.position.copy(pos); ring.lookAt(camera.position); scene.add(ring);
+    const rMax = big ? 2.6 : 1.5;
+    effects.push({ t: 0, dur: 0.28, update(e) { const k = e.t / 0.28; ring.scale.setScalar(0.3 + k * rMax); ring.material.opacity = 0.9 * (1 - k); }, dispose() { scene.remove(ring); ring.material.dispose(); } });
+    // 斬撃の線（攻撃の向きに長い光）
+    const slash = fxMesh(fxGeo.plane, 0xffffff, 1);
+    slash.position.copy(pos); slash.lookAt(camera.position);
+    const sAng = Math.atan2(-dir.z, dir.x) + (Math.random() - 0.5) * 0.6;
+    slash.rotateZ(sAng);
+    scene.add(slash);
+    const len = big ? 3.2 : 2.2;
+    effects.push({ t: 0, dur: 0.16, update(e) { const k = e.t / 0.16; slash.scale.set(len * (0.4 + k), 0.16 * (1 - k) + 0.02, 1); slash.material.opacity = 1 - k; }, dispose() { scene.remove(slash); slash.material.dispose(); } });
+    // 属性ごとの粒
+    if (elem === 'fire') burst(pos, 0xff8a2a, 14, 4, 0.13, -7, 0.8);                       // 火の粉が舞い上がる
+    else if (elem === 'ice') {                                                               // 氷のかけら
+      for (let i = 0; i < 7; i++) {
+        const m = fxMesh(fxGeo.oct, 0xbff4ff, 0.95); m.position.copy(pos); m.scale.set(0.08, 0.2, 0.08); scene.add(m);
+        const v = new THREE.Vector3(Math.random() * 2 - 1, Math.random() * 1.5, Math.random() * 2 - 1).multiplyScalar(5);
+        effects.push({ t: 0, dur: 0.55, update(e) { v.y -= 18 / 60; m.position.addScaledVector(v, 1 / 60); m.rotation.x += 0.3; m.material.opacity = 1 - e.t / 0.55; }, dispose() { scene.remove(m); m.material.dispose(); } });
+      }
+    } else if (elem === 'thunder') {                                                         // 上から落ちる稲妻
+      const pts = []; let x = pos.x, z = pos.z;
+      for (let i = 0; i <= 6; i++) { pts.push(new THREE.Vector3(x, pos.y + 4.5 - i * 0.75, z)); x += (Math.random() - 0.5) * 0.7; z += (Math.random() - 0.5) * 0.7; }
+      pts[pts.length - 1].copy(pos);
+      const g = new THREE.Group();
+      for (let i = 0; i < pts.length - 1; i++) {
+        const a = pts[i], b = pts[i + 1], seg = fxMesh(new THREE.BoxGeometry(0.09, a.distanceTo(b), 0.09), 0xfff36b, 1);
+        seg.position.copy(a).lerp(b, 0.5); seg.lookAt(b); seg.rotateX(Math.PI / 2); g.add(seg);
+      }
+      scene.add(g);
+      effects.push({ t: 0, dur: 0.22, update(e) { const o = Math.random() < 0.5 ? 1 : 0.4; g.children.forEach(c => c.material.opacity = o * (1 - e.t / 0.22)); }, dispose() { scene.remove(g); g.children.forEach(c => { c.geometry.dispose(); c.material.dispose(); }); } });
+    } else if (elem === 'poison') {                                                          // 毒の泡
+      for (let i = 0; i < 6; i++) {
+        const m = fxMesh(fxGeo.sph, 0x7dff4a, 0.7); m.position.copy(pos).add(new THREE.Vector3((Math.random() - 0.5) * 0.8, 0, (Math.random() - 0.5) * 0.8)); scene.add(m);
+        const s0 = 0.06 + Math.random() * 0.08, sp = 1.5 + Math.random() * 1.5;
+        effects.push({ t: 0, dur: 0.8, update(e) { m.position.y += sp / 60; m.scale.setScalar(s0 * (1 + e.t * 1.5)); m.material.opacity = 0.7 * (1 - e.t / 0.8); }, dispose() { scene.remove(m); m.material.dispose(); } });
+      }
+    } else if (elem === 'wind') {                                                            // 風のうず
+      for (let i = 0; i < 2; i++) {
+        const m = fxMesh(fxGeo.ring, 0xe6fff8, 0.7); m.position.copy(pos); m.position.y -= 0.4 - i * 0.5; m.rotation.x = Math.PI / 2; scene.add(m);
+        effects.push({ t: 0, dur: 0.4, update(e) { const k = e.t / 0.4; m.scale.setScalar(0.4 + k * (1.8 + i * 0.6)); m.rotation.z += 0.25; m.material.opacity = 0.7 * (1 - k); }, dispose() { scene.remove(m); m.material.dispose(); } });
+      }
+    }
+    if (big) fxFlash(0.22, elem === 'none' ? '#ffffff' : '#' + new THREE.Color(col).getHexString());
+  } finally { NET.mute = false; }
+}
+
 function guardRipple(f) {
   if (netRec()) NET.events.push(['ripple', f.idx]);
   const m = new THREE.Mesh(new THREE.RingGeometry(0.62, 0.78, 6), new THREE.MeshBasicMaterial({ color: 0xbfe9ff, transparent: true, side: THREE.DoubleSide, depthWrite: false }));
@@ -1208,14 +1282,14 @@ class Fighter {
     this.sp ??= 0;   // 必殺ゲージ（0〜1）。ラウンドをまたいで持ち越す
     this.status = { burn: 0, poison: 0, slow: 0, stun: 0, shield: 0 };
     this.gm = this.st.guardMax; this.gmDelay = 0; this.guarding = false;
-    this.buf = { attack: 0, skill: 0, jump: 0, step: 0 }; this.chargeT = 0; this.charged = 0; this.guardLock = 0;
+    this.buf = { attack: 0, skill: 0, jump: 0, step: 0 }; this.chargeT = 0; this.charged = 0; this.guardLock = 0; this.blockStun = 0;
     this.chain = 0; this.hitLanded = false; this.orbHit = 0; this.combo = { hits: 0, dmg: 0, free: 0 };
     this.guardAge = 9; this.prevGuardIn = false; this.dodgeT = 0; this.dodgeCd = 0; this.invuln = 0;
     this.grounded = true; this.jumps = 0; this.dead = false; this.out = false; this.walk = 0;
     this.m.root.rotation.set(0, yaw, 0);
     this.ai = null;
   }
-  dispose() { this.parent.remove(this.m.root); if (this.ring) scene.remove(this.ring); }
+  dispose() { this.parent.remove(this.m.root); if (this.ring) scene.remove(this.ring); if (this.trail) { this.parent.remove(this.trail); this.trail.geometry.dispose(); this.trail.material.dispose(); } }
   get fwd() { return new THREE.Vector3(Math.sin(this.yaw), 0, Math.cos(this.yaw)); }
   center() { return new THREE.Vector3(this.pos.x, this.pos.y + 0.9 * this.b.size, this.pos.z); }
 
@@ -1258,8 +1332,9 @@ class Fighter {
     if (guardPress && Math.hypot(inp.mx, inp.mz) > 0.5) { B.step = BUFFER; this.stepIn = [inp.mx, inp.mz]; }
     this.dodgeCd = Math.max(0, this.dodgeCd - dt);
     this.guardLock = Math.max(0, this.guardLock - dt);
+    this.blockStun = Math.max(0, this.blockStun - dt);
     this.invuln = Math.max(0, this.invuln - dt);
-    if (control && B.step > 0 && this.grounded && this.state === 'idle' && this.dodgeCd <= 0 && this.guardLock <= 0) {
+    if (control && B.step > 0 && this.grounded && this.state === 'idle' && this.dodgeCd <= 0 && this.guardLock <= 0 && !(this.blockStun > 0)) {
       const [sx, sz] = this.stepIn, l = Math.hypot(sx, sz);
       B.step = 0;
       this.state = 'dodge'; this.dodgeT = 0;
@@ -1277,9 +1352,13 @@ class Fighter {
     }
 
     // ガード：地上で何もしていない時に長押し。正面からの攻撃を軽減、ゲージが尽きるとブレイク
-    this.guarding = control && inp.guard && this.grounded && this.state === 'idle' && !inp.attack && !inp.skill && this.gm > 0 && this.guardLock <= 0;
+    //   ガードで受けた直後（blockStun）は、ボタンを離してもガードのまま
+    const held = this.blockStun > 0;
+    this.guarding = control && (inp.guard || held) && this.grounded && this.state === 'idle' && (held || (!inp.attack && !inp.skill)) && this.gm > 0 && this.guardLock <= 0;
     // ガードを押した瞬間から数える（ラウンド開始からずっと押していても正しく数える）
     this.guardAge = this.guarding ? (this.wasGuarding ? this.guardAge + dt : 0) : 0;
+    if (this.wasGuarding && !this.guarding) this.guardEndLag = GUARD.releaseLag;   // ガード解除のスキ
+    this.guardEndLag = Math.max(0, (this.guardEndLag || 0) - dt);
     this.wasGuarding = this.guarding;
     if (this.guarding) {
       this.gmDelay = 0.8;
@@ -1303,9 +1382,9 @@ class Fighter {
         burst(new THREE.Vector3(this.pos.x, this.pos.y + 0.1, this.pos.z), 0xffffff, 6, 3, 0.12, 2, 0.3);
       }
       if (B.attack > 0 && this.canChain()) { B.attack = 0; this.startAttack(0, this.chain + 1); }
-      else if (B.attack > 0 && this.state === 'idle') { B.attack = 0; this.startAttack(); }
+      else if (B.attack > 0 && this.state === 'idle' && !(this.guardEndLag > 0) && !(this.blockStun > 0)) { B.attack = 0; this.startAttack(); }
       else if (this.state === 'idle' && this.atkHeld && this.holdT >= CHARGE.hold && !this.charged && this.grounded) this.startCharge();
-      else if (B.skill > 0 && this.state === 'idle' && this.sp >= 1) { B.skill = 0; this.useSkill(opp); }
+      else if (B.skill > 0 && this.state === 'idle' && this.sp >= 1 && !(this.blockStun > 0)) { B.skill = 0; this.useSkill(opp); }
     } else if (this.state !== 'dash' && this.state !== 'dodge') {
       const fr = Math.min(1, (this.grounded ? 5 : KB.airDrag) * dt);
       this.vel.x -= this.vel.x * fr; this.vel.z -= this.vel.z * fr;
@@ -1530,6 +1609,38 @@ class Fighter {
     if (this.dashT <= 0) { this.state = 'idle'; this.vel.x *= 0.3; this.vel.z *= 0.3; }
   }
 
+  // 武器を振ったときの光の軌跡（剣先と手元の位置を数フレーム分つないだ帯）
+  updateTrail(dt) {
+    const w = { ...this.st.weapon, ...this.timing() };
+    const swinging = this.state === 'attack' && w.type !== 'orb' && this.atkT >= w.wind * 0.6 && this.atkT <= w.wind + w.active + 0.06;
+    const pts = this.trailPts ??= [];
+    for (const p of pts) p.age += dt;
+    if (swinging) {
+      const tip = this.m.tip.getWorldPosition(new THREE.Vector3()), hand = this.m.armPivot.getWorldPosition(new THREE.Vector3());
+      pts.push({ a: tip, b: hand.lerp(tip, 0.45), age: 0 });
+    }
+    while (pts.length && (pts[0].age > 0.12 || pts.length > 10)) pts.shift();
+    if (!this.trail) {
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(10 * 2 * 3), 3));
+      const idx = []; for (let i = 0; i < 9; i++) { const a = i * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
+      g.setIndex(idx);
+      const col = this.b.element === 'none' ? 0xffffff : ELEM_COLOR[this.b.element];
+      this.trail = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.55, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending }));
+      this.trail.frustumCulled = false;
+      this.parent.add(this.trail);
+    }
+    const pos = this.trail.geometry.attributes.position;
+    this.trail.visible = pts.length >= 2;
+    if (!this.trail.visible) return;
+    for (let i = 0; i < 10; i++) {
+      const p = pts[Math.min(i, pts.length - 1)];
+      pos.setXYZ(i * 2, p.a.x, p.a.y, p.a.z); pos.setXYZ(i * 2 + 1, p.b.x, p.b.y, p.b.z);
+    }
+    pos.needsUpdate = true;
+    this.trail.geometry.setDrawRange(0, (pts.length - 1) * 6);
+  }
+
   animate(dt) {
     const m = this.m, S = this.status;
     m.root.position.copy(this.pos);
@@ -1554,7 +1665,8 @@ class Fighter {
 
     // 腕・武器
     const w = { ...this.st.weapon, ...this.timing() }, ap = m.armPivot, base = ap.userData.base;
-    let rx = w.type === 'fist' ? 1.3 : 0.35, pz = 0, twist = 0;
+    let rx = w.type === 'fist' ? 1.3 : 0.35, pz = 0, twist = 0, rz = 0;
+    const diag = w.type === 'sword';   // 剣は右上から左下への斜め切り
     if (this.state === 'charge') {
       const lv = Math.min(1, this.chargeT / CHARGE.full), sh = lv >= 1 ? Math.sin(t * 60) * 0.04 : 0;
       if (w.style === 'thrust') { rx = Math.PI / 2; pz = -0.45 * lv; } else rx = -1.4 - 0.3 * lv + sh;
@@ -1563,9 +1675,10 @@ class Fighter {
       const tt = this.atkT, a = w.wind, b2 = w.wind + w.active, c = b2 + w.recover;
       const ease = x => 1 - Math.pow(1 - x, 3);
       if (w.style === 'slash') {
-        if (tt < a) { rx = THREE.MathUtils.lerp(0.35, -1.4, ease(tt / a)); twist = -0.3 * (tt / a); }
-        else if (tt < b2) { rx = THREE.MathUtils.lerp(-1.4, 2.3, ease((tt - a) / w.active)); twist = 0.4; }
-        else { rx = THREE.MathUtils.lerp(2.3, 0.35, ease((tt - b2) / w.recover)); twist = 0.4 * (1 - (tt - b2) / w.recover); }
+        const D = diag ? 0.9 : 0;   // 斜め切り：振りかぶりで腕を外へ倒し、振り抜きで内へ
+        if (tt < a) { rx = THREE.MathUtils.lerp(0.35, -1.4, ease(tt / a)); twist = -0.3 * (tt / a); rz = THREE.MathUtils.lerp(0, -D, ease(tt / a)); }
+        else if (tt < b2) { const k = ease((tt - a) / w.active); rx = THREE.MathUtils.lerp(-1.4, 2.3, k); twist = 0.4 + 0.3 * (diag ? 1 : 0); rz = THREE.MathUtils.lerp(-D, D * 0.8, k); }
+        else { const k = ease((tt - b2) / w.recover); rx = THREE.MathUtils.lerp(2.3, 0.35, k); twist = (0.4 + 0.3 * (diag ? 1 : 0)) * (1 - (tt - b2) / w.recover); rz = THREE.MathUtils.lerp(D * 0.8, 0, k); }
       } else if (w.style === 'thrust') {
         rx = Math.PI / 2;
         if (tt < a) pz = -0.3 * (tt / a);
@@ -1578,8 +1691,11 @@ class Fighter {
     } else if (this.state === 'dash') rx = 1.4;
     else if (this.guarding) { rx = 1.0; twist = -0.25; }
     ap.rotation.x = rx;
+    ap.rotation.order = 'ZYX';   // 先に前後に振り、その振りの面ごと z で斜めに倒す
+    ap.rotation.z = rz;
     ap.position.z = base.z + pz;
     m.torso.rotation.y = twist;
+    this.updateTrail(dt);
 
     // 状態の色
     let eh = 0x000000, ei = 0;
@@ -1662,11 +1778,12 @@ function applyHit(att, tgt, dmg, knock, dir, elem, lift = 0, bySkill = false, br
     const worn = 1 - tgt.gm / tgt.st.guardMax;          // 0=元気 〜 1=限界
     const chip = dmg * (0.1 + 0.5 * worn) * tgt.st.def;
     tgt.hp = Math.max(1, tgt.hp - chip);
-    tgt.gm -= breaker ? tgt.gm + 1 : dmg * 2.2;   // ため攻撃は一発でガードを割る
+    tgt.gm -= breaker ? tgt.gm + 1 : dmg * GUARD.blockDrain;   // ため攻撃は一発でガードを割る
     const push = knock * 0.25 * (1 + 2 * worn);         // 端で固めていると場外に押し出される
     tgt.vel.x += dir.x * push; tgt.vel.z += dir.z * push;
     tgt.flash = 0.05;
-    if (att) { att.vel.x -= dir.x * 3; att.vel.z -= dir.z * 3; if (!bySkill) att.sp = Math.min(1, att.sp + Math.min(SP_HIT_CAP, dmg * 0.5 / SKILL_COST[att.st.skill])); }
+    tgt.blockStun = Math.max(tgt.blockStun, dmg * FEEL.blockStun);
+    if (att) { att.vel.x -= dir.x * 3; att.vel.z -= dir.z * 3; if (!bySkill) att.sp = Math.min(1, att.sp + Math.min(SP_HIT_CAP, dmg * GUARD.spOnBlock / SKILL_COST[att.st.skill])); }
     if (tgt.gm <= 0) {
       tgt.gm = 0; tgt.guarding = false; tgt.status.stun = 1.3; tgt.gmDelay = 1.5;
       sfx('big'); G.shake = Math.max(G.shake, 0.4);
@@ -1683,7 +1800,7 @@ function applyHit(att, tgt, dmg, knock, dir, elem, lift = 0, bySkill = false, br
       G.shake = Math.max(G.shake, 0.18);
       dmgNumber(hitPos.clone().setY(hitPos.y + 0.8), 'ガード！', '#9fd8ff');
     }
-    G.hitstop = 0.07;
+    G.hitstop = hitStopOf(dmg, FEEL.guardStop);
     return 'guard';
   }
   let dm = dmg * (elem === 'none' ? ELEM_FX.noneBonus : 1) * tgt.st.def;
@@ -1737,10 +1854,12 @@ function applyHit(att, tgt, dmg, knock, dir, elem, lift = 0, bySkill = false, br
   if (comboOver && !tgt.dead) tgt.pendingBreak = true;   // この攻撃の処理が終わってからコンボ抜け
   const big = dm >= 14 || tgt.dead;
   sfx(big ? 'big' : 'hit');
-  G.hitstop = tgt.dead ? 0.25 : Math.min(0.12, 0.03 + dm * 0.004);
+  G.hitstop = tgt.dead ? 0.25 : hitStopOf(dm);
   G.shake = Math.max(G.shake, Math.min(0.7, dm * 0.03 + (tgt.dead ? 0.5 : 0)));
   burst(hitPos, ELEM_COLOR[elem], 8 + Math.round(dm), 7, 0.15, 10, 0.45);
   burst(hitPos, 0xffffff, 5, 9, 0.1, 0, 0.2);
+  fxHit(hitPos, dir, elem, big || breaker);
+  if (tgt.dead) { G.slowmo = 0.8; fxFlash(0.5); }   // KOの瞬間はスローモーション
   dmgNumber(hitPos.clone().setY(hitPos.y + 0.8), Math.round(dm), big ? '#ffd23f' : '#fff');
 }
 
@@ -1968,12 +2087,33 @@ function updateHud(dt) {
   $('rnd').textContent = 'ROUND ' + G.round;
 }
 
+// 初めて画面に出る物（ガードの盾・武器の軌跡・当たったときの演出など）は、出た瞬間に描画の準備が走って一瞬カクつく。
+// 試合の前に、隠れている物も含めて全部まとめて準備しておく
+function prewarm() {
+  const role = NET.role, nE = effects.length, nP = particles.length, hidden = [];
+  NET.role = null;   // 準備用の演出は相手に送らない
+  try {
+    for (const f of G.fighters) f.updateTrail(0);
+    const p = new THREE.Vector3(0, -40, 0), d = new THREE.Vector3(1, 0, 0);
+    for (const e of Object.keys(ELEM_COLOR)) fxHit(p, d, e, false);
+    ringFx(p, 0xffffff); burst(p, 0xffffff, 1);
+    scene.traverse(o => { if (!o.visible) { hidden.push(o); o.visible = true; } });
+    renderer.compile?.(scene, camera);
+  } catch (e) { console.warn('prewarm', e); }
+  finally {
+    NET.role = role;
+    hidden.forEach(o => o.visible = false);
+    effects.splice(nE).forEach(e => e.dispose());
+    particles.splice(nP).forEach(q => scene.remove(q.m));
+  }
+}
 function startBattle() {
   clearTitleDemo();
   for (const f of G.fighters) f.dispose();
   for (const p of G.projectiles) scene.remove(p.m);
   G.projectiles = [];
   G.fighters = [new Fighter(G.builds[0], 0, G.watch), new Fighter(G.builds[1], 1, (G.vsCPU || G.watch) && !NET.role)];
+  prewarm();
   if (G.streak < 0) G.streak = 0;
   if (G.vsCPU && !G.watch) G.fighters[1].cpuLv = G.endless ? endlessLv() : G.cpuLv;
   G.need = G.endless || G.tut ? 1 : 2;   // 勝ち抜き・チュートリアルは1本勝負でテンポよく
@@ -2525,7 +2665,7 @@ function buildCpuLv() {
 buildCpuLv();
 
 // ===== オンライン対戦 =====
-const netRec = () => NET.role === 'host' && (mode === 'battle' || mode === 'result');
+const netRec = () => NET.role === 'host' && !NET.mute && (mode === 'battle' || mode === 'result');
 function netSend(msg) { try { if (NET.conn && NET.conn.open) NET.conn.send(msg); } catch { /* 切れていたら送らない */ } }
 // PeerJS はオンライン対戦を選んだときだけ読み込む（アプリ同梱版 → なければ CDN）
 function loadPeer() {
@@ -2715,6 +2855,8 @@ function netGuestUpdate(dt) {
       else if (e[0] === 'dmg') dmgNumber(V(e[1]), e[2], e[3]);
       else if (e[0] === 'ann') announce(e[1], e[2]);
       else if (e[0] === 'shatter') G.pendingShatter = { x: e[1] * innerWidth, y: e[2] * innerHeight };
+      else if (e[0] === 'fxhit') { fxHit(V(e[1]), new THREE.Vector3(e[2][0], 0, e[2][1]), e[3], !!e[4]); if (e[4] && G.fighters.some(f => f.dead)) G.slowmo = 0.8; }
+      else if (e[0] === 'flash') fxFlash(e[1], e[2]);
     }
   }
   for (const f of G.fighters) f.animate(dt);
@@ -2947,9 +3089,20 @@ function goTitle() {
    メインループ
    ========================================================= */
 const clock = new THREE.Clock();
+const QUALITY = { pr: renderer.getPixelRatio?.() ?? 1, sum: 0, n: 0 };
+function autoQuality(raw) {
+  if (mode !== 'battle' || G.paused || document.hidden || raw > 0.25) { QUALITY.sum = QUALITY.n = 0; return; }
+  QUALITY.sum += raw; QUALITY.n++;
+  if (QUALITY.sum < 2) return;
+  const avg = QUALITY.sum / QUALITY.n; QUALITY.sum = QUALITY.n = 0;
+  if (avg > 1 / 48 && QUALITY.pr > 1) { QUALITY.pr = Math.max(1, QUALITY.pr - 0.25); renderer.setPixelRatio(QUALITY.pr); renderer.setSize(innerWidth, innerHeight); }
+}
 function loop() {
   requestAnimationFrame(loop);
-  const dt = Math.min(clock.getDelta(), 1 / 30);
+  const raw = clock.getDelta();
+  autoQuality(raw);
+  let dt = Math.min(raw, 1 / 30);
+  if (G.slowmo > 0) { G.slowmo -= dt; dt *= 0.3; }   // KOの瞬間をゆっくり見せる
   const t = performance.now() / 1000;
   scene.children.forEach(o => { if (o.userData.bob !== undefined) o.position.y += Math.sin(t + o.userData.bob) * dt * 0.3; });
   if (mode === 'create') {
