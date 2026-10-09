@@ -31,7 +31,7 @@
   .screen.on { display: flex; }
 
   /* タイトル */
-  #title { flex-direction: column; align-items: center; justify-content: center; gap: 18px; pointer-events: none; }
+  #title { flex-direction: column; align-items: center; justify-content: safe center; gap: 18px; pointer-events: none; overflow-y: auto; padding: 12px 0; }
   #title > * { pointer-events: auto; }
   .logo { font-family: "Mochiy Pop One", sans-serif; font-size: clamp(44px, 9vw, 110px); line-height: 1; letter-spacing: 2px;
     color: var(--gold); text-shadow: 0 6px 0 #c2410c, 0 12px 30px rgba(0,0,0,.5); transform: rotate(-3deg); margin: 0; }
@@ -43,6 +43,10 @@
   .big-btn.blue { background: var(--p2); }
   .big-btn.gold { background: var(--gold); color: #3b2300; }
   .big-btn.ghost { background: rgba(27, 21, 48, .72); }
+  .big-btn.purple { background: #8a5cff; }
+  .cpu-lv { display: flex; align-items: center; gap: 6px; background: rgba(27, 21, 48, .72); padding: 6px 10px; border-radius: 14px; font-weight: 800; font-size: 14px; }
+  .cpu-lv .opt { padding: 6px 12px; }
+  .win-sub { font-weight: 800; font-size: 16px; color: #fff; text-shadow: 0 2px 6px #000; min-height: 1.2em; }
   .hint { color: var(--ink); font-size: 13px; text-align: center; line-height: 1.7; background: rgba(27, 21, 48, .72); padding: 8px 14px; border-radius: 12px; margin: 4px 16px 0; }
 
   /* クリエイター */
@@ -238,8 +242,27 @@
     .rnd { font-size: 13px; }
     .hud-top { padding: calc(8px + env(safe-area-inset-top, 0px)) calc(10px + env(safe-area-inset-right, 0px)) 8px calc(10px + env(safe-area-inset-left, 0px)); gap: 8px; }
   }
+  /* 横画面（高さが低い）：HUD を細く、ヒントは下の真ん中に小さく */
   @media (max-height: 500px) {
-    #title { gap: 8px; }
+    .hud-top { padding: calc(6px + env(safe-area-inset-top, 0px)) calc(12px + env(safe-area-inset-right, 0px)) 4px calc(12px + env(safe-area-inset-left, 0px)); }
+    .pl { width: 34vw; }
+    .pl .nm { font-size: 13px; }
+    .pl .nm .badge { font-size: 11px; padding: 2px 7px; }
+    .hp { height: 10px; margin-top: 3px; border-width: 1.5px; }
+    .gb { height: 4px; margin-top: 2px; }
+    .pl .meta { margin-top: 3px; }
+    .spg { height: 20px; } .spg b { line-height: 16px; font-size: 11px; }
+    .stars { font-size: 13px; }
+    .rnd { font-size: 12px; padding-top: 2px; }
+    #pauseBtn { padding: 3px 10px; font-size: 13px; margin-top: 3px; }
+    body.touch #toast { top: auto; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); max-width: 40vw; font-size: 12px; padding: 6px 10px; }
+  }
+  @media (max-height: 500px) {
+    /* 横画面：ボタンを2列に並べて画面に収める */
+    #title { gap: 8px; flex-flow: row wrap; align-content: safe center; }
+    #title .logo, #title .sub { flex-basis: 100%; text-align: center; }
+    #title .big-btn { min-width: 0; width: min(300px, 42vw); }
+    .cpu-lv { padding: 4px 8px; font-size: 12px; } .cpu-lv .opt { padding: 4px 9px; font-size: 12px; }
     .logo { font-size: 48px; }
     .sub { margin-bottom: 4px; }
     .big-btn { padding: 9px 22px; font-size: 16px; }
@@ -261,7 +284,9 @@
   <button class="big-btn blue" data-go="cpu">CPUと対戦</button>
   <button class="big-btn" data-go="best" id="bestGo" hidden>⭐ マイキャラで即バトル</button>
   <button class="big-btn gold" data-go="quick">🎲 おまかせ即バトル</button>
+  <button class="big-btn purple" data-go="endless" id="endlessGo">🏆 勝ち抜きモード</button>
   <button class="big-btn ghost" data-go="watch">👀 CPU同士を観戦</button>
+  <div class="cpu-lv" id="cpuLv">CPUのつよさ</div>
   <p class="hint">キャラも武器もその場で作って、そのまま対戦。<br>相手を場外に落とすか、HPを0にしたら勝ち。2本先取！</p>
 </div>
 
@@ -288,8 +313,9 @@
 <div id="announce"></div>
 
 <div id="result" class="screen">
-  <div class="win-label">WINNER</div>
+  <div class="win-label" id="winLabel">WINNER</div>
   <div class="win-name" id="winName"></div>
+  <div class="win-sub" id="winSub"></div>
   <button class="big-btn gold" id="againBtn">もう一回！</button>
   <button class="big-btn blue" id="remakeBtn">キャラをつくりなおす</button>
   <button class="big-btn ghost" id="toTitleBtn">タイトルへ</button>
@@ -328,6 +354,7 @@ const OPTS = {
   wHead:   [['sword','剣'],['hammer','ハンマー'],['axe','オノ'],['spear','ヤリ'],['orb','魔法玉'],['fist','グローブ']],
   element: [['none','無'],['fire','炎'],['ice','氷'],['thunder','雷'],['poison','毒'],['wind','風']],
   skill:   [['dash','突進'],['shot','気弾'],['shield','バリア'],['heal','回復'],['quake','地震'],['blink','ワープ']],
+  bsize:   [['S','ちいさい'],['M','ふつう'],['L','おおきい']],
 };
 const DESC = {
   
@@ -336,7 +363,9 @@ const DESC = {
   element: { none: '属性なし：ダメージ +15%', fire: 'やけど：2秒間じわじわダメージ', ice: 'こおり：しばらく相手の動きを遅くする',
              thunder: 'しびれ：当てると相手が少し長く止まる', poison: 'どく：5秒間ずっとダメージ', wind: 'かぜ：ふっとばし +50%' },
   skill: { dash: '突進して体当たり', shot: '大きな気弾を撃つ', shield: '1.5秒間無敵、弾を跳ね返す',
-           heal: 'HPを18回復', quake: '周りの敵を打ち上げる', blink: '相手の背後にワープ' },
+           heal: 'HPを18回復', quake: '周りの敵を打ち上げる', blink: '相手の背後にワープ。相手は一瞬ひるむ＋自分は一瞬無敵' },
+  bsize: { S: '足が速くてジャンプが高い。そのかわり力は弱く、ふっとびやすい', M: 'バランス型',
+           L: '力が強くて、ふっとびにくい。リーチも少し長い。そのかわり足が遅く、体が大きいので当たりやすい' },
 };
 const ELEM_COLOR = { none: 0xffffff, fire: 0xff5a1f, ice: 0x66ddff, thunder: 0xffee33, poison: 0x7dff4a, wind: 0xc8fff0 };
 const WEAPONS = {
@@ -345,16 +374,17 @@ const WEAPONS = {
   //   ・攻撃が速いほどふっとばしが弱い：ふっとばし ∝ 1回の攻撃時間
   //   ・遠距離（魔法玉）は足を遅く・ふっとばしを弱く固定（同じ速さだと近距離が永遠に追いつけないため）
   //   数値は sim/tune.mjs（自動調整）で決定。npm run sim -- weapons で確認できる（CPU同士 49〜51%）
-  sword:  { dmg: 10.2, reach: 1.75, wind: .12, active: .10, recover: .22, knock: 7,   move: 0.99, style: 'slash' },
-  hammer: { dmg: 21.2,  reach: 1.6,  wind: .34, active: .10, recover: .40, knock: 13.4, move: 0.8, style: 'slash', armor: true },
-  axe:    { dmg: 14.4,  reach: 1.65, wind: .22, active: .10, recover: .30, knock: 9.9,  move: 0.9, style: 'slash', armor: true },
-  spear:  { dmg: 10.4, reach: 2.45, wind: .15, active: .10, recover: .30, knock: 8.8,  move: 0.99, style: 'thrust' , light: true },
-  orb:    { dmg: 13.7,  reach: 0,    wind: .15, active: .05, recover: .33, knock: 2.5,  move: 0.82, style: 'cast' , light: true },
-  fist:   { dmg: 9.6,   reach: 1.3,  wind: .06, active: .08, recover: .12, knock: 4.1,  move: 1.01, style: 'thrust' , light: true },
+  sword:  { dmg: 8.8, reach: 1.75, wind: .12, active: .10, recover: .22, knock: 7,   move: 1.04, style: 'slash' },
+  hammer: { dmg: 38.6,  reach: 1.6,  wind: .34, active: .10, recover: .40, knock: 13.4, move: 0.67, style: 'slash', armor: true },
+  axe:    { dmg: 10.2,  reach: 1.65, wind: .22, active: .10, recover: .30, knock: 9.9,  move: 0.99, style: 'slash', armor: true },
+  spear:  { dmg: 10.9, reach: 2.45, wind: .15, active: .10, recover: .30, knock: 8.8,  move: 0.97, style: 'thrust' , light: true },
+  orb:    { dmg: 8.6,  reach: 0,    wind: .15, active: .05, recover: .33, knock: 2.5,  move: 0.82, style: 'cast' , light: true },
+  fist:   { dmg: 12.5,   reach: 1.3,  wind: .06, active: .08, recover: .12, knock: 4.1,  move: 0.94, style: 'thrust' , light: true },
 };
 const ICONS = {
   element: { none: '⚪', fire: '🔥', ice: '❄️', thunder: '⚡', poison: '☠️', wind: '🌪️' },
   skill: { dash: '💨', shot: '☄️', shield: '🛡️', heal: '💚', quake: '💥', blink: '🌀' },
+  bsize: { S: '🐭', M: '🧑', L: '🐘' },
 };
 // 能力ポイント：合計 PT_TOTAL を6項目に振り分ける（各1〜10）
 const PT_KEYS = [['hp', '❤️', '耐久', 'HPが増える'], ['def', '🛡️', 'かたさ', '受けるダメージが減る・ガードが長持ち'], ['spd', '👟', 'スピード', '移動が速くなる'],
@@ -372,14 +402,37 @@ const GUARD_DRAIN = 12;    // ガード押しっぱなしで1秒あたり減る�
 //   検証：HP満タンで 剣1.1・ハンマー5（1発で28%削るため）、残り3割のため攻撃で 剣9・ハンマー23（ステージ半径9）
 //   CPU同士で 場外17：HP0 22、1試合 平均50秒
 const KB = { base: 0.45, grow: 2.5, lift: 0.1, liftMax: 6, airDrag: 1.4 };
-const ORB_SPEED = 0.75;    // 魔法玉の弾の速さ（見てからよけられるように少し遅め）
+// 魔法玉：speed＝弾の速さ（見てからよけられるように少し遅め）、chain＝当たってからこの秒数以内に押すと次の弾（3連射）、max＝同時に出せる弾の数
+const ORB = { speed: 0.75, chain: 0.5, max: 3 };
+const BASE = { hp: 100 };   // 体力（全員共通）
 const JUST_GUARD = 0.25;
 const JUST_LOCK = 0.9;     // ジャストガードされた側は、この秒数ガードもステップもできない（反撃が必ず入る）   // ガードを押してからこの秒数以内に受けるとジャストガード（スマホの遅れも考えて広め）
 // 1発で溜まる必殺ゲージの上限（どんなに強い攻撃でも、必殺技には最低3回当てる必要がある）
-const SP_HIT_CAP = 0.34;
-const SKILL_COST = { dash: 37, shot: 25, shield: 54, heal: 34, quake: 35, blink: 22 };
+const SP_HIT_CAP = 0.25;
+// 3段コンボ：タイミングよく攻撃を押すと3段までつながる。2段目は威力×0.47、3段目は×0.61（今の剣で合計がほぼ25）
+// 相手がやられっぱなしの間に受けるダメージは合計 cap まで。超えたら「コンボ抜け」で相手は少し無敵になる（無限ハメ防止）
+const COMBO = { cap: 25, steps: [1, 0.47, 0.61], stunPad: 0.12, knock: 0.15, finKnock: 1.2, burstInvuln: 0.6 };
+// CPUのつよさ：考える間隔（小さいほど速い）・攻撃する確率・弾への反応・ガード/ステップの多さ・コンボをつなぐ確率・必殺を使う確率
+const CPU_LV = [
+  { name: 'よわい', think: 1.8, atk: 0.35, react: 0.2, guard: 0.4, step: 0.3, chain: 0.3, charge: 0.3, skill: 0.25 },
+  { name: 'ふつう', think: 1,   atk: 0.6,  react: 0.5, guard: 1,   step: 1,   chain: 1,   charge: 0.6, skill: 0.5 },
+  { name: 'つよい', think: 0.6, atk: 0.75, react: 0.8, guard: 1.3, step: 1.5, chain: 1,   charge: 0.8, skill: 0.8 },
+  { name: 'おに',   think: 0.4, atk: 0.85, react: 0.95, guard: 1.6, step: 2,  chain: 1,   charge: 0.9, skill: 1 },
+];
+// 勝ち抜きモード：何連勝したかで相手のつよさが上がる（この連勝数から）
+const ENDLESS_LV = [0, 2, 5, 9];
+// 体の大きさ：強さではなく「性格」が変わる。s＝見た目と当たり判定、pow＝攻撃力、spd＝足、jump＝ジャンプ、wt＝ふっとびにくさ、swing＝振りの時間（小さいほど速い）。リーチは全員同じ
+//   シミュレーターで 大53%・中50%・小47% になるよう手で調整（2026-10-09）。swing は 0.965〜0.975 の間に崖がある（1コマ差で攻撃後の有利が入れ替わる）ので近づけない
+const SIZE = {
+  S: { s: 0.85, pow: 0.96, spd: 1.08, jump: 1.05, wt: 0.94, swing: 0.975 },
+  M: { s: 1, pow: 1, spd: 1, jump: 1, wt: 1, swing: 1 },
+  L: { s: 1.2, pow: 1.08, spd: 0.92, jump: 0.95, wt: 1.08, swing: 1.05 },
+};
+const sizeOf = b => (SIZE[b.bsize] || SIZE.M).s;
+const BLINK_STUN = 0.25;   // ワープされた相手がひるむ秒数
+const SKILL_COST = { dash: 41, shot: 22, shield: 84, heal: 47, quake: 33, blink: 44 };
 // 属性のおまけ効果（どれも「無属性のダメージ+15%」と同じくらいの価値になるよう CPU 総当たりで調整）
-const ELEM_FX = { burn: 2, burnDps: 2.21, poison: 5, poisonDps: 1.589, slow: 2.3, stun: 0.19, noneBonus: 1.18, windKnock: 1.315 };
+const ELEM_FX = { burn: 2, burnDps: 2.308, poison: 5, poisonDps: 1.722, slow: 2.665, stun: 0.136, noneBonus: 1.221, windKnock: 1.292 };
 
 const NAME_A = ['ゴン','ピコ','ザン','モチ','ガル','ポン','キラ','ドド','メカ','ニャ','ボル','ルル','ジン','タコ','ベア','ズン','プリ','ギガ','チョコ','バク'];
 const NAME_B = ['','丸','ン','X','太郎','マン','ゴン','すけ','キング','ちゃん','ZERO','ボーイ','ドン'];
@@ -401,14 +454,14 @@ function randomBuild() {
   return b;
 }
 function defaultBuild(i) {
-  return { name: i ? 'ブルー' : 'レッド', body: 'cube', head: 'ball', eyes: 'normal', hat: 'horns', size: 1,
+  return { name: i ? 'ブルー' : 'レッド', body: 'cube', head: 'ball', eyes: 'normal', hat: 'horns', size: 1, bsize: 'M',
            color: i ? '#3fa9ff' : '#ff4d6d', accent: '#2b2540', wHead: 'sword', element: 'fire',
            wColor: '#e5e7eb', skill: 'dash', gripLen: 0.55, bladeLen: 1, bladeW: 1, pts: defaultPts() };
 }
 
 function getStats(b) {
-  const s = 1;   // サイズは全員共通
-  const st = { hp: 100 * (0.6 + 0.4 * s), speed: 6.2 * (1.3 - 0.3 * s), def: 1, knockRes: 0.6 + 0.4 * s, jump: 10.5, radius: 0.55 * s };
+  const Z = SIZE[b.bsize] || SIZE.M, s = Z.s;   // HPは大きさに関係なく全員100
+  const st = { hp: BASE.hp, speed: 6.2 * Z.spd, def: 1, knockRes: Z.wt, jump: 10.5 * Z.jump, radius: 0.55 * s };
 
   // 能力ポイント（5が標準＝×1.0、10で×1.3、1で×0.76）
   const P = defaultPts();   // 能力ポイントは廃止（全員同じ）
@@ -423,15 +476,19 @@ function getStats(b) {
   const w = { ...WEAPONS[b.wHead], type: b.wHead };
   // 武器の形スライダーは見た目だけ。性能は武器の種類で決まる
   const grip = 0.55, heavy = 1;
-  w.dmg *= (0.7 + 0.3 * heavy) * m('pow');
+  w.dmg *= (0.7 + 0.3 * heavy) * m('pow') * Z.pow;
   w.knock *= 0.7 + 0.3 * heavy;
   const slow = 0.75 + 0.25 * heavy + Math.max(0, grip - 0.55) * 0.3;
-  w.wind *= slow; w.recover *= slow;
-  w.reach = Math.max(0.9, w.reach * (0.6 + 0.4 * s));   // 武器の形スライダーは見た目だけ（リーチも変わらない）
+  w.wind *= slow * Z.swing; w.recover *= slow * Z.swing;   // 小さいほど振りが速い
+  w.reach = Math.max(0.9, w.reach);   // リーチは大きさに関係なく同じ   // 武器の形スライダーは見た目だけ（リーチも変わらない）
   w.projSpeed = 16 + grip * 7;
   w.projR = 0.22 * Math.sqrt(heavy);
   // バランス：移動速度は武器ごとの計算値（攻撃力が高いほど遅い）
   st.speed *= w.move;
+  // 3段コンボの各段のダメージ：武器の威力 × COMBO.steps（威力・属性・大きさがコンボにも効く）
+  // やられっぱなしで受けるダメージは COMBO.cap まで（applyHit で制限）。ハンマーはコンボなし＝1発で吹っ飛ばす
+  w.chainDmg = COMBO.steps.map(k => w.dmg * k);
+  w.chainSteps = w.type === 'hammer' ? 1 : 3;
   st.weapon = w;
   st.element = b.element;
   st.skill = b.skill;
@@ -626,7 +683,7 @@ function buildPaper(info) {
 
 function buildCharacter(b) {
   const root = new THREE.Group();
-  const inner = new THREE.Group(); inner.scale.setScalar(b.size); root.add(inner);
+  const inner = new THREE.Group(); inner.scale.setScalar(sizeOf(b)); root.add(inner);
   const accM = mat(b.accent);
   const info = b.bodyMode === 'draw' ? drawCache.get(b.drawing) : null;
   if (info) return finishCharacter(b, root, inner, accM, info);
@@ -707,7 +764,7 @@ function finishCharacter(b, root, inner, accM, info, parts) {
     const a = i / 3 * Math.PI * 2; s.position.set(Math.sin(a) * 0.4, 0, Math.cos(a) * 0.4); stars.add(s);
   }
 
-  return { root, inner, torso, feet, armPivot, tip: weapon.tip, hat, mats, shield, guard, chargeRing, stars, paper, height: (headTop + 0.2) * b.size };
+  return { root, inner, torso, feet, armPivot, tip: weapon.tip, hat, mats, shield, guard, chargeRing, stars, paper, height: (headTop + 0.2) * sizeOf(b) };
 }
 
 /* =========================================================
@@ -1059,6 +1116,7 @@ function updateDmgNums(dt) {
 const G = {
   fighters: [], projectiles: [], phase: 'idle', phaseT: 0, round: 1, wins: [0, 0],
   hitstop: 0, shake: 0, vsCPU: false, builds: [null, null], camMid: new THREE.Vector3(), paused: false,
+  cpuLv: 1, endless: false, streak: 0, need: 2,
 };
 const PCOLOR = [0xff4d6d, 0x3fa9ff];
 
@@ -1066,7 +1124,7 @@ function angleLerp(a, b, t) { let d = ((b - a + Math.PI) % (Math.PI * 2) + Math.
 
 class Fighter {
   constructor(build, idx, cpu, parent = scene) {
-    this.b = build; this.idx = idx; this.cpu = cpu;
+    this.b = build = { ...build, size: sizeOf(build) }; this.idx = idx; this.cpu = cpu;
     this.st = getStats(build);
     this.m = buildCharacter(build);
     parent.add(this.m.root);
@@ -1088,6 +1146,7 @@ class Fighter {
     this.status = { burn: 0, poison: 0, slow: 0, stun: 0, shield: 0 };
     this.gm = this.st.guardMax; this.gmDelay = 0; this.guarding = false;
     this.buf = { attack: 0, skill: 0, jump: 0, step: 0 }; this.chargeT = 0; this.charged = 0; this.guardLock = 0;
+    this.chain = 0; this.hitLanded = false; this.orbHit = 0; this.combo = { hits: 0, dmg: 0, free: 0 };
     this.guardAge = 9; this.prevGuardIn = false; this.dodgeT = 0; this.dodgeCd = 0; this.invuln = 0;
     this.grounded = true; this.jumps = 0; this.dead = false; this.out = false; this.walk = 0;
     this.m.root.rotation.set(0, yaw, 0);
@@ -1102,6 +1161,9 @@ class Fighter {
     for (const k in S) S[k] = Math.max(0, S[k] - dt);
     this.hitstun = Math.max(0, this.hitstun - dt);
     this.flash = Math.max(0, this.flash - dt);
+    this.orbHit = Math.max(0, this.orbHit - dt);
+    if (this.pendingBreak) { this.pendingBreak = false; comboBreak(this, null, null); }
+    if (this.hitstun <= 0 && S.stun <= 0) { this.combo.free += dt; if (this.combo.free > 0.3) { this.combo.hits = 0; this.combo.dmg = 0; } }
     if (this.sp >= 1 && !this.dead && G.phase === 'fight' && Math.random() < dt * 5) {
       burst(this.center().add(new THREE.Vector3((Math.random() - 0.5) * 1.2, -0.4, (Math.random() - 0.5) * 1.2)), 0xffd23f, 1, 1.2, 0.09, -4, 0.6);
     }
@@ -1177,7 +1239,8 @@ class Fighter {
         this.jumps++; this.grounded = false; sfx('jump');
         burst(new THREE.Vector3(this.pos.x, this.pos.y + 0.1, this.pos.z), 0xffffff, 6, 3, 0.12, 2, 0.3);
       }
-      if (B.attack > 0 && this.state === 'idle') { B.attack = 0; this.startAttack(); }
+      if (B.attack > 0 && this.canChain()) { B.attack = 0; this.startAttack(0, this.chain + 1); }
+      else if (B.attack > 0 && this.state === 'idle') { B.attack = 0; this.startAttack(); }
       else if (this.state === 'idle' && this.atkHeld && this.holdT >= CHARGE.hold && !this.charged && this.grounded) this.startCharge();
       else if (B.skill > 0 && this.state === 'idle' && this.sp >= 1) { B.skill = 0; this.useSkill(opp); }
     } else if (this.state !== 'dash' && this.state !== 'dodge') {
@@ -1218,9 +1281,17 @@ class Fighter {
   }
 
   // 攻撃：スティックを倒していればその方向に振る（自動で相手を狙わない）
-  startAttack(charged = 0) {
+  startAttack(charged = 0, chain = 0) {
     this.state = 'attack'; this.atkT = 0; this.hitDone = false; this.charged = charged; this.armorUsed = false;
+    this.chain = charged ? 0 : chain; this.hitLanded = false; this.orbHit = 0;
     if (this.stickDir !== null) this.yaw = this.targetYaw = this.stickDir;
+  }
+  // 当たった直後なら次の段を出せる（ため攻撃は対象外、3段目まで）
+  // 魔法玉：弾が当たってから ORB.chain 秒以内に押すと次の弾（3連射）
+  canChain() {
+    const w = this.st.weapon;
+    if (w.type === 'orb') return this.orbHit > 0 && this.chain < w.chainSteps - 1 && (this.state === 'idle' || (this.state === 'attack' && this.atkT >= w.wind + w.active));
+    return this.state === 'attack' && this.hitLanded && !this.charged && this.chain < w.chainSteps - 1 && this.atkT >= w.wind;
   }
   // 今の攻撃のタイミング（ため攻撃は振りが速く、終わりの隙が大きい）
   timing() {
@@ -1257,8 +1328,8 @@ class Fighter {
       if (w.type === 'orb') {
         if (!this.hitDone) {
           this.hitDone = true;
-          // 自分の弾が残っている間は次の弾は出ない（連射でハメられないように）
-          if (!G.projectiles.some(p => p.owner === this && !p.skill)) this.fireProjectile(false, this.charged);
+          // 同時に出せる弾は ORB.max 個まで（連射でハメられないように）
+          if (G.projectiles.filter(p => p.owner === this && !p.skill).length < ORB.max) this.fireProjectile(false, this.charged);
         }
       } else {
         if (this.b.element !== 'none' || w.type === 'hammer') {
@@ -1287,8 +1358,17 @@ class Fighter {
       this.hitDone = true;
       const dir = new THREE.Vector3(dx, 0, dz).normalize();
       if (d < 0.01) dir.copy(f);
-      const c = this.charged, mult = c ? 1.4 + 0.6 * c : 1;
-      applyHit(this, opp, w.dmg * mult, w.knock * (c ? 1.3 + 0.4 * c : 1), dir, this.b.element, 0, false, c > 0);
+      const c = this.charged;
+      let dmg, knock, chainStun = 0;
+      if (c) { dmg = w.dmg * (1.4 + 0.6 * c); knock = w.knock * (1.3 + 0.4 * c); }
+      else if (this.chain < w.chainSteps - 1) {
+        // 途中の段：その場で止めて次の段につなげる
+        dmg = w.chainDmg[this.chain]; knock = w.knock * COMBO.knock;
+        chainStun = w.wind + w.active + COMBO.stunPad;
+      } else { dmg = w.chainSteps === 1 ? w.dmg : w.chainDmg[this.chain]; knock = w.knock * (w.chainSteps === 1 ? 1 : COMBO.finKnock); }   // 最後の段：ふっとばす
+      const res = applyHit(this, opp, dmg, knock, dir, this.b.element, 0, false, c > 0, chainStun);
+      if (res === undefined || res === 'armor') this.hitLanded = true;
+      if (chainStun && res === undefined) { this.vel.x += f.x * 3; this.vel.z += f.z * 3; }   // 少し踏み込んで次の段を届かせる
       if (c) { G.shake = Math.max(G.shake, 0.25); }
     }
   }
@@ -1304,9 +1384,9 @@ class Fighter {
     scene.add(m);
     const w = this.st.weapon;
     G.projectiles.push({
-      m, owner: this, vel: f.multiplyScalar(big ? 16 : w.projSpeed * ORB_SPEED), life: big ? 1.4 : 1.1, r: size,
+      m, owner: this, vel: f.multiplyScalar(big ? 16 : w.projSpeed * ORB.speed), life: big ? 1.4 : 1.1, r: size,
       dmg: big ? 14 : w.dmg * (charged ? 1.4 + 0.6 * charged : 1), knock: big ? 11 : w.knock * (charged ? 1.3 + 0.4 * charged : 1),
-      element: this.b.element, color, skill: big, breaker: charged > 0,
+      element: this.b.element, color, skill: big, breaker: charged > 0, chain: big || charged ? -1 : this.chain,
     });
   }
 
@@ -1354,7 +1434,14 @@ class Fighter {
           this.pos.set(nx, Math.max(0, opp.pos.y), nz);
           this.vel.set(0, 0, 0);
           this.yaw = this.targetYaw = Math.atan2(opp.pos.x - nx, opp.pos.z - nz);
+          // 背後を取られた相手は一瞬ひるむ（ワープのあとの攻撃が入る）。無敵・バリア中は効かない
+          // コンボのカウントは仕切り直し（ゲージは1発で4分の1までなので、3段コンボ→ワープの無限ループにはならない）
+          if (opp.invuln <= 0 && !(opp.status.shield > 0)) {
+            opp.hitstun = Math.max(opp.hitstun, BLINK_STUN); opp.state = 'idle'; opp.flash = 0.1;
+            opp.combo.hits = 0; opp.combo.dmg = 0;
+          }
         }
+        this.invuln = 0.35;   // ワープ直後は一瞬無敵（無限ハメは必殺ゲージの上限とコンボ上限で防ぐ）
         burst(this.center(), 0xc084fc, 14, 5, 0.12, 0, 0.4);
         break;
       }
@@ -1473,7 +1560,7 @@ class Fighter {
   }
 }
 
-function applyHit(att, tgt, dmg, knock, dir, elem, lift = 0, bySkill = false, breaker = false) {
+function applyHit(att, tgt, dmg, knock, dir, elem, lift = 0, bySkill = false, breaker = false, chainStun = 0) {
   if (tgt.dead || G.phase !== 'fight') return;
   const hitPos = tgt.center();
   if (tgt.invuln > 0) {   // 回避ステップの無敵中
@@ -1484,7 +1571,7 @@ function applyHit(att, tgt, dmg, knock, dir, elem, lift = 0, bySkill = false, br
     sfx('block');
     burst(hitPos, 0x7fe3ff, 10, 5, 0.12, 0, 0.3);
     if (att) { att.vel.x -= dir.x * 9; att.vel.z -= dir.z * 9; att.hitstun = 0.25; att.state = 'idle'; }
-    return;
+    return 'shield';
   }
   // ガード：正面から受けた攻撃だけ防げる（背後や横からは通る）
   if (tgt.guarding && tgt.fwd.dot(dir) < -0.1) {
@@ -1529,9 +1616,18 @@ function applyHit(att, tgt, dmg, knock, dir, elem, lift = 0, bySkill = false, br
       dmgNumber(hitPos.clone().setY(hitPos.y + 0.8), 'ガード！', '#9fd8ff');
     }
     G.hitstop = 0.07;
-    return;
+    return 'guard';
   }
-  const dm = dmg * (elem === 'none' ? ELEM_FX.noneBonus : 1) * tgt.st.def;
+  let dm = dmg * (elem === 'none' ? ELEM_FX.noneBonus : 1) * tgt.st.def;
+  // コンボ上限：やられっぱなしの間に受けるダメージは合計 COMBO.cap まで
+  const cb = tgt.combo;
+  if (cb.hits > 0) {
+    const left = COMBO.cap - cb.dmg;
+    if (left <= 0.01) { comboBreak(tgt, att, dir); return 'break'; }
+    dm = Math.min(dm, left);
+  }
+  cb.hits++; cb.dmg += dm; cb.free = 0;
+  const comboOver = cb.hits > 1 && cb.dmg >= COMBO.cap - 0.01;
   tgt.hp -= dm;
   if (att && !bySkill) att.sp = Math.min(1, att.sp + Math.min(SP_HIT_CAP, dm / SKILL_COST[att.st.skill]));
   // 重さ負けしない：ハンマー・オノの振りかぶり中は、軽い武器（グローブ・ヤリ・魔法玉）の攻撃ではひるまない（ため攻撃中は除く）
@@ -1546,10 +1642,10 @@ function applyHit(att, tgt, dmg, knock, dir, elem, lift = 0, bySkill = false, br
   }
   const ratio = 1 - Math.max(0, tgt.hp) / tgt.st.hp;
   const kb = knock * (KB.base + ratio * KB.grow) / tgt.st.knockRes * (elem === 'wind' ? ELEM_FX.windKnock : 1);
-  tgt.vel.set(dir.x * kb, Math.min(KB.liftMax, 2 + kb * KB.lift) + lift, dir.z * kb);
-  tgt.grounded = false;
+  tgt.vel.set(dir.x * kb, chainStun ? 0.5 : Math.min(KB.liftMax, 2 + kb * KB.lift) + lift, dir.z * kb);
+  tgt.grounded = !!chainStun && tgt.grounded;
   tgt.jumps = Math.min(tgt.jumps, 1);   // 攻撃を受けたら空中ジャンプが1回分戻る（復帰のチャンス）
-  tgt.hitstun = 0.15 + kb * 0.014;
+  tgt.hitstun = Math.max(0.15 + kb * 0.014, chainStun);
   tgt.state = 'idle';
   tgt.flash = 0.1;
   if (elem === 'fire') tgt.status.burn = ELEM_FX.burn;
@@ -1566,6 +1662,8 @@ function applyHit(att, tgt, dmg, knock, dir, elem, lift = 0, bySkill = false, br
     tgt.vel.x *= 1.8; tgt.vel.z *= 1.8; tgt.vel.y += 7;
     sfx('ko');
   }
+  if (cb.hits >= 2 && !tgt.dead) dmgNumber(hitPos.clone().setY(hitPos.y + 1.4), `${cb.hits} HIT!`, '#ffd23f');
+  if (comboOver && !tgt.dead) tgt.pendingBreak = true;   // この攻撃の処理が終わってからコンボ抜け
   const big = dm >= 14 || tgt.dead;
   sfx(big ? 'big' : 'hit');
   G.hitstop = tgt.dead ? 0.25 : Math.min(0.12, 0.03 + dm * 0.004);
@@ -1573,6 +1671,17 @@ function applyHit(att, tgt, dmg, knock, dir, elem, lift = 0, bySkill = false, br
   burst(hitPos, ELEM_COLOR[elem], 8 + Math.round(dm), 7, 0.15, 10, 0.45);
   burst(hitPos, 0xffffff, 5, 9, 0.1, 0, 0.2);
   dmgNumber(hitPos.clone().setY(hitPos.y + 0.8), Math.round(dm), big ? '#ffd23f' : '#fff');
+}
+
+// コンボ抜け：上限まで受けたら、少しの間無敵になって仕切り直し
+function comboBreak(tgt, att, dir) {
+  if (tgt.dead) return;
+  tgt.invuln = Math.max(tgt.invuln, COMBO.burstInvuln);
+  tgt.combo.hits = 0; tgt.combo.dmg = 0;
+  if (att && dir) { att.vel.x += dir.x * -6; att.vel.z += dir.z * -6; att.state = 'idle'; }
+  burst(tgt.center(), 0x9fd8ff, 16, 6, 0.12, 0, 0.4);
+  const p = tgt.center(); dmgNumber(p.setY(p.y + 1.2), 'コンボ抜け！', '#9fd8ff');
+  sfx('block');
 }
 
 function updateProjectiles(dt) {
@@ -1588,7 +1697,15 @@ function updateProjectiles(dt) {
         if (f.status.shield > 0) {
           p.owner = f; p.vel.multiplyScalar(-1.2); p.life = 1; sfx('block');
         } else {
-          applyHit(p.owner, f, p.dmg, p.knock, p.vel.clone().setY(0).normalize(), p.element, 0, p.skill, p.breaker);
+          const o = p.owner, w = o.st.weapon;
+          if (p.chain >= 0 && w.type === 'orb') {
+            // 魔法玉の3連射：途中の弾は相手をその場に止め、次の弾が届くまで待たせる
+            const mid = p.chain < w.chainSteps - 1;
+            const travel = Math.hypot(f.pos.x - o.pos.x, f.pos.z - o.pos.z) / (w.projSpeed * ORB.speed);
+            const res = applyHit(o, f, w.chainDmg[p.chain], w.knock * (mid ? COMBO.knock : COMBO.finKnock), p.vel.clone().setY(0).normalize(), p.element, 0, false, false,
+                                 mid ? ORB.chain + w.wind + travel + COMBO.stunPad : 0);
+            if (mid && res === undefined && o.chain === p.chain) o.orbHit = ORB.chain;
+          } else applyHit(p.owner, f, p.dmg, p.knock, p.vel.clone().setY(0).normalize(), p.element, 0, p.skill, p.breaker);
           gone = true;
         }
       }
@@ -1657,7 +1774,7 @@ function cpuInput(f, o, dt) {
   const res = { mx: 0, mz: 0, attack: false, skill: false, jump: false, guard: false };
   const dx = o.pos.x - f.pos.x, dz = o.pos.z - f.pos.z, d = Math.hypot(dx, dz) || 0.01;
   const r = Math.hypot(f.pos.x, f.pos.z) || 0.01;
-  const w = f.st.weapon;
+  const w = f.st.weapon, L = CPU_LV[f.cpuLv ?? 1];
   // 場外からの復帰
   if (r > ARENA_R - 0.4 || (!f.grounded && r > ARENA_R - 2)) {
     res.mx = -f.pos.x / r; res.mz = -f.pos.z / r;
@@ -1668,7 +1785,7 @@ function cpuInput(f, o, dt) {
   }
   ai.t -= dt;
   if (ai.t <= 0 && !o.dead) {
-    ai.t = 0.12 + Math.random() * 0.2;
+    ai.t = (0.12 + Math.random() * 0.2) * L.think;
     const want = w.type === 'orb' ? 5.5 : w.reach * 0.8;
     let mx = dx / d, mz = dz / d;
     if (w.type === 'orb' && d < want * 0.7) { mx = -mx; mz = -mz; }
@@ -1678,13 +1795,13 @@ function cpuInput(f, o, dt) {
     }
     if (r > ARENA_R - 2.5) { mx = mx * 0.3 - f.pos.x / r; mz = mz * 0.3 - f.pos.z / r; }
     ai.mx = mx; ai.mz = mz;
-    ai.atk = (w.type === 'orb' ? d < 11 : d < w.reach + 0.5) && Math.random() < 0.6;
-    if (ai.atk && o.guarding && Math.random() < 0.6) ai.holdT = w.wind + w.active + 0.35 + Math.random() * 0.5;
+    ai.atk = (w.type === 'orb' ? d < 11 : d < w.reach + 0.5) && Math.random() < L.atk;
+    if (ai.atk && o.guarding && Math.random() < L.charge) ai.holdT = w.wind + w.active + 0.35 + Math.random() * 0.5;
     ai.jmp = (o.state === 'attack' && d < 3 && Math.random() < 0.25) || Math.random() < 0.02;
-    if (o.state === 'attack' && d < o.st.weapon.reach + 1 && Math.random() < 0.2) {
+    if (o.state === 'attack' && d < o.st.weapon.reach + 1 && Math.random() < 0.2 * L.step) {
       const side = Math.random() < 0.5 ? 1 : -1;
       ai.stepDir = [-dz / d * side - dx / d * 0.5, dx / d * side - dz / d * 0.5]; ai.stepT = 0.06;
-    } else if (o.state === 'attack' && d < o.st.weapon.reach + 1 && f.gm > f.st.guardMax * 0.3 && Math.random() < 0.45) {
+    } else if (o.state === 'attack' && d < o.st.weapon.reach + 1 && f.gm > f.st.guardMax * 0.3 && Math.random() < 0.45 * L.guard) {
       ai.guardT = 0.35 + Math.random() * 0.35; ai.atk = false; ai.jmp = false;
     }
     const hpR = f.hp / f.st.hp;
@@ -1692,7 +1809,7 @@ function cpuInput(f, o, dt) {
       heal: hpR < 0.5, shot: d > 4, dash: d > 2.5 && d < 9, quake: d < 3.2,
       blink: d > 4, shield: o.state === 'attack' && d < 3.5,
     }[f.st.skill];
-    ai.skl = want2 && f.sp >= 1 && Math.random() < 0.5;
+    ai.skl = want2 && f.sp >= 1 && Math.random() < L.skill;
   }
   // 飛んでくる弾に反応：ガードするか、横に避ける
   if (!ai.projT || ai.projT <= 0) {
@@ -1702,7 +1819,7 @@ function cpuInput(f, o, dt) {
       const toward = (p.vel.x * px + p.vel.z * pz) / (Math.hypot(p.vel.x, p.vel.z) * pd || 1);
       if (pd < 6 && toward > 0.85) {
         ai.projT = 0.5;
-        if (Math.random() < 0.5) break;   // 人と同じく、いつも反応できるわけではない
+        if (Math.random() > L.react) break;   // 人と同じく、いつも反応できるわけではない
         if (f.gm > f.st.guardMax * 0.3 && Math.random() < 0.5) ai.guardT = 0.45;
         else { const side = Math.random() < 0.5 ? 1 : -1; ai.dodge = [-pz / pd * side, px / pd * side]; ai.dodgeT = 0.35; }
         break;
@@ -1716,8 +1833,9 @@ function cpuInput(f, o, dt) {
   res.guard = ai.guardT > 0;
   if (res.guard && !(ai.stepT > 0)) { res.mx = 0; res.mz = 0; }   // ガード中は止まる（勝手にステップしない）
   if (ai.stepT > 0) { ai.stepT -= dt; res.guard = true; res.mx = ai.stepDir[0]; res.mz = ai.stepDir[1]; }
+  if (f.canChain() && ai.chainOK) { ai.atk = true; ai.chainOK = Math.random() < L.chain; }   // 当たったらコンボをつなぐ（弱いCPUはつながないことがある）
   if ((ai.atk || ai.skl) && !o.dead) f.yaw = f.targetYaw = Math.atan2(dx, dz);   // CPUは自分で相手の方を向いて振る
-  if (ai.atk) { res.attack = true; ai.atk = false; }
+  if (ai.atk) { res.attack = true; ai.atk = false; if (!f.canChain()) ai.chainOK = Math.random() < L.chain; }
   ai.holdT = Math.max(0, (ai.holdT || 0) - dt);
   res.attackHeld = ai.holdT > 0;
   // 人と同じく「相手の方へスティックを倒して」攻撃する（自動狙いがないため）
@@ -1770,7 +1888,7 @@ function updateHud(dt) {
     sk.querySelector('i').style.width = (f.sp * 100) + '%';
     const nm = OPTS.skill.find(s => s[0] === f.b.skill)[1];
     sk.querySelector('b').textContent = ready ? `${ICONS.skill[f.b.skill]} ${nm} OK!` : `${ICONS.skill[f.b.skill]} ${nm}`;
-    el.querySelector('.stars').textContent = '★'.repeat(G.wins[i]) + '☆'.repeat(2 - G.wins[i]);
+    el.querySelector('.stars').textContent = '★'.repeat(G.wins[i]) + '☆'.repeat(Math.max(0, G.need - G.wins[i]));
   });
   $('rnd').textContent = 'ROUND ' + G.round;
 }
@@ -1781,6 +1899,9 @@ function startBattle() {
   for (const p of G.projectiles) scene.remove(p.m);
   G.projectiles = [];
   G.fighters = [new Fighter(G.builds[0], 0, G.watch), new Fighter(G.builds[1], 1, G.vsCPU || G.watch)];
+  if (G.streak < 0) G.streak = 0;
+  if (G.vsCPU && !G.watch) G.fighters[1].cpuLv = G.endless ? endlessLv() : G.cpuLv;
+  G.need = G.endless ? 1 : 2;   // 勝ち抜きは1本勝負でテンポよく
   G.wins = [0, 0]; G.round = 1;
   buildHud();
   show('hud');
@@ -1795,8 +1916,9 @@ function startRound() {
   for (const p of G.projectiles) scene.remove(p.m);
   G.projectiles = [];
   G.phase = 'intro'; G.phaseT = 0; G.skillKO = false; G.pendingShatter = null;
-  announce('ROUND ' + G.round, 1.1);
-  if (G.round === 1 && !G.watch) toast(IS_TOUCH ? '攻撃長押し＝ため攻撃でガードを割る／ガード＋スティックで回避' : '攻撃長押し＝ため攻撃でガードを割る／ガード＋方向でステップ', 4500);
+  announce(G.endless ? `${G.streak + 1}人目` : 'ROUND ' + G.round, 1.1);
+  if (G.endless) toast(`VS ${G.builds[1].name}（CPU：${CPU_LV[G.fighters[1].cpuLv].name}）`, 2200);
+  else if (G.round === 1 && !G.watch) toast(IS_TOUCH ? '攻撃長押し＝ため攻撃でガードを割る／ガード＋スティックで回避' : '攻撃長押し＝ため攻撃でガードを割る／ガード＋方向でステップ', 4500);
 }
 
 function updateBattle(dt) {
@@ -1837,11 +1959,12 @@ function updateBattle(dt) {
       if (f.out && !f.dead) sfx('ko');
     }
   } else if (G.phase === 'end' && G.phaseT > 2.4) {
-    const champ = G.wins.findIndex(w => w >= 2);
+    const champ = G.wins.findIndex(w => w >= G.need);
     if (champ >= 0) {
       G.phase = 'over';
       $('winName').textContent = G.fighters[champ].b.name;
       $('winName').style.color = champ ? '#3fa9ff' : '#ff4d6d';
+      showResult(champ);
       show('result');
       mode = 'result';
       if (G.watch) setTimeout(() => { if (mode === 'result' && G.watch) { G.builds = [randomBuild(), randomBuild()]; startBattle(); } }, 3500);
@@ -1875,6 +1998,9 @@ function updateCamera(dt, frozen = false) {
     G.shake = Math.max(0, G.shake - dt * 2.5);
   }
   camera.lookAt(G.camMid.x, G.camMid.y + 0.8, G.camMid.z);
+  // 横画面では HUD に隠れないよう、映す中心を少し下げる
+  if (innerHeight < 500) camera.setViewOffset(innerWidth, innerHeight, 0, -innerHeight * 0.08, innerWidth, innerHeight);
+  else if (camera.view?.enabled) camera.clearViewOffset();
 }
 
 function togglePause() {
@@ -1922,6 +2048,9 @@ let preview = null;
 let previewYaw = 0.5, dragging = false, lastX = 0, previewSwingT = 0;
 const LS = 'battlephase_roster_v1';
 const LS_BEST = 'battlephase_best_v1';
+const LS_CPU = 'battlephase_cpulv_v1', LS_STREAK = 'battlephase_streak_v1';
+const loadNum = (k, d) => { try { const v = +localStorage.getItem(k); return localStorage.getItem(k) === null || isNaN(v) ? d : v; } catch { return d; } };
+const saveNum = (k, v) => { try { localStorage.setItem(k, String(v)); } catch { /* 保存できない環境 */ } };
 const loadBest = () => { try { const b = JSON.parse(localStorage.getItem(LS_BEST)); return b ? sanitize(b) : null; } catch { return null; } };
 const saveBest = b => { try { localStorage.setItem(LS_BEST, JSON.stringify(b)); } catch { /* 保存できない環境 */ } };
 const loadRoster = () => { try { return JSON.parse(localStorage.getItem(LS)) || []; } catch { return []; } };
@@ -2107,9 +2236,9 @@ function renderPanel() {
       <button class="tool" id="pasteB">📥 コードを読む</button>
     </div>
     <div id="rosterWrap"></div>
-    <div class="desc">強さはみんな同じ。選ぶのは「戦い方」だけ。あとは腕で勝負！</div>
+    <div class="desc">強さはみんな同じ。選ぶのは「戦い方」だけ（大きさも、強い・弱いではなく得意なことが変わるだけ）。あとは腕で勝負！</div>
     <h2 class="sec">たたかい方</h2>
-    ${optRow('ぶき', 'wHead')}${optRow('能力の系統', 'element')}${optRow('ひっさつわざ', 'skill')}
+    ${optRow('ぶき', 'wHead')}${optRow('能力の系統', 'element')}${optRow('ひっさつわざ', 'skill')}${optRow('体の大きさ', 'bsize')}
     <details class="look" id="lookBox">
       <summary>🎨 見た目をカスタム（しなくてもOK）</summary>
       <div class="mode-tabs" id="modeTabs">
@@ -2276,7 +2405,7 @@ function updatePreview(dt) {
     if (preview.atkT > w.wind + w.active + w.recover) preview.state = 'idle';
   }
   preview.animate(dt);
-  const h = preview.m.height;
+  const h = preview.m.height / preview.b.size;   // カメラは「ふつう」の大きさ基準（大きさの違いが見えるように）
   const fit = Math.max(1, 0.9 / camera.aspect);
   camera.position.set(0, h * 0.75 + 0.6, (h * 1.6 + 3.2) * fit);
   camera.lookAt(0, h * 0.5, 0);
@@ -2295,10 +2424,52 @@ function show(id, keepHud = false) {
   $('touch').hidden = id !== 'hud';
 }
 
+// CPUのつよさ（タイトルで選ぶ。勝ち抜きモードでは使わない）
+G.cpuLv = Math.min(CPU_LV.length - 1, Math.max(0, loadNum(LS_CPU, 1)));
+function buildCpuLv() {
+  const box = $('cpuLv');
+  box.innerHTML = 'CPUのつよさ';
+  CPU_LV.forEach((L, i) => {
+    const b = document.createElement('button');
+    b.className = 'opt' + (i === G.cpuLv ? ' sel' : ''); b.textContent = L.name;
+    b.onclick = () => { sfx('select'); G.cpuLv = i; saveNum(LS_CPU, i); buildCpuLv(); };
+    box.appendChild(b);
+  });
+}
+buildCpuLv();
+
+// 勝ち抜きモード
+const endlessLv = () => ENDLESS_LV.filter(n => G.streak >= n).length - 1;
+function showResult(champ) {
+  const label = $('winLabel'), sub = $('winSub'), again = $('againBtn');
+  $('remakeBtn').hidden = false;
+  if (!G.endless) { label.textContent = 'WINNER'; sub.textContent = ''; again.textContent = 'もう一回！'; return; }
+  const rec = loadNum(LS_STREAK, 0);
+  if (champ === 0) {
+    G.streak++;
+    const isNew = G.streak > rec;
+    if (isNew) saveNum(LS_STREAK, G.streak);
+    label.textContent = 'WIN!';
+    $('winName').textContent = `${G.streak}連勝！`;
+    sub.textContent = isNew && rec ? '🎉 自己ベスト更新中！' : `最高記録：${Math.max(rec, G.streak)}連勝`;
+    again.textContent = 'つぎの相手へ ▶';
+    $('remakeBtn').hidden = true;
+  } else {
+    label.textContent = 'GAME OVER';
+    $('winName').textContent = `記録：${G.streak}連勝`;
+    $('winName').style.color = '#ffd23f';
+    sub.textContent = G.streak > 0 && G.streak >= rec ? '🎉 自己ベスト！' : rec ? `最高記録：${rec}連勝` : 'まずは1勝をめざそう！';
+    again.textContent = 'もう一度挑戦';
+    G.streak = -1;   // 「もう一度挑戦」で0から
+  }
+}
+
 document.querySelectorAll('[data-go]').forEach(b => b.onclick = () => {
   sfx('select');
   const go = b.dataset.go;
   G.watch = go === 'watch';
+  G.endless = go === 'endless'; G.streak = 0;
+  if (go === 'endless') { G.vsCPU = true; openCreator(0); return; }
   if (go === 'best') {
     const best = loadBest(); if (!best) return;
     G.vsCPU = true; G.builds = [best, randomBuild()];
@@ -2337,10 +2508,10 @@ $('backBtn').onclick = () => {
 };
 $('againBtn').onclick = () => { sfx('go'); if (G.vsCPU) G.builds[1] = randomBuild(); startBattle(); };
 $('remakeBtn').onclick = () => { G.watch = false; cleanupBattle(); openCreator(0); };
-$('toTitleBtn').onclick = () => { G.watch = false; goTitle(); };
+$('toTitleBtn').onclick = () => { G.watch = false; G.endless = false; goTitle(); };
 $('resumeBtn').onclick = togglePause;
 $('pauseBtn').onclick = () => { if (mode === 'battle' && !G.paused) togglePause(); };
-$('quitBtn').onclick = () => { G.paused = false; G.watch = false; goTitle(); };
+$('quitBtn').onclick = () => { G.paused = false; G.watch = false; G.endless = false; goTitle(); };
 
 function cleanupBattle() {
   buildTouch([]);
@@ -2355,6 +2526,8 @@ function cleanupBattle() {
   announceEl.innerHTML = '';
 }
 function updateTitleBest() {
+  const rec = loadNum(LS_STREAK, 0);
+  $('endlessGo').textContent = rec ? `🏆 勝ち抜きモード（最高 ${rec}連勝）` : '🏆 勝ち抜きモード';
   const best = loadBest();
   $('bestGo').hidden = !best;
   if (best) $('bestGo').textContent = `⭐ ${best.name} で即バトル`;
