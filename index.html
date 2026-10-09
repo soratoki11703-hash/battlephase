@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>バトルフェーズ</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Mochiy+Pop+One&family=M+PLUS+Rounded+1c:wght@500;800&display=swap" rel="stylesheet">
+<!-- 文字のフォントは読み込みを待たずに画面を出す（電波が弱くても起動が止まらないように）。読めたら差し替わる -->
+<link href="https://fonts.googleapis.com/css2?family=Mochiy+Pop+One&family=M+PLUS+Rounded+1c:wght@500;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
 <style>
   :root {
     --bg: #1b1530;
@@ -172,6 +173,12 @@
   .win-name { font-family: "Mochiy Pop One"; font-size: clamp(36px, 7vw, 80px); text-shadow: 0 6px 20px rgba(0,0,0,.6); }
   .win-label { font-family: "Mochiy Pop One"; font-size: 28px; color: var(--gold); }
 
+  /* オンライン対戦 */
+  #online { align-items: center; justify-content: center; flex-direction: column; gap: 14px; background: rgba(10, 6, 25, .7); padding: 16px; text-align: center; }
+  #online .code { font-family: "Mochiy Pop One", sans-serif; font-size: clamp(56px, 16vw, 110px); letter-spacing: 12px; color: var(--gold); text-shadow: 0 6px 0 #c2410c; }
+  #online .code-in { font: 800 40px "Mochiy Pop One", sans-serif; width: 6.5em; text-align: center; letter-spacing: 10px; padding: 8px; border-radius: 14px; border: 3px solid var(--gold); background: rgba(0,0,0,.35); color: #fff; outline: none; }
+  #online .row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+  #online [hidden] { display: none !important; }
   /* チュートリアルの案内 */
   #tut { position: fixed; left: 50%; top: calc(110px + env(safe-area-inset-top, 0px)); transform: translateX(-50%); z-index: 25; width: min(560px, calc(100% - 32px));
     background: rgba(27, 21, 48, .88); border: 2px solid var(--gold); border-radius: 16px; padding: 10px 14px; display: flex; gap: 10px; align-items: center; pointer-events: auto; }
@@ -296,6 +303,7 @@
   <button class="big-btn gold" data-go="quick">🎲 おまかせ即バトル</button>
   <button class="big-btn ghost" data-go="tutorial" id="tutGo">📘 チュートリアル</button>
   <button class="big-btn purple" data-go="endless" id="endlessGo">🏆 勝ち抜きモード</button>
+  <button class="big-btn blue" data-go="online">🌐 友達と対戦（オンライン）</button>
   <button class="big-btn ghost" data-go="watch">👀 CPU同士を観戦</button>
   <div class="cpu-lv" id="cpuLv">CPUのつよさ</div>
   <p class="hint">キャラも武器もその場で作って、そのまま対戦。<br>相手を場外に落とすか、HPを0にしたら勝ち。2本先取！</p>
@@ -332,8 +340,26 @@
   <button class="big-btn ghost" id="toTitleBtn">タイトルへ</button>
 </div>
 
+<div id="online" class="screen">
+  <div class="win-label">🌐 友達と対戦</div>
+  <div class="row" id="onMenu">
+    <button class="big-btn gold" id="onCreate">部屋を作る</button>
+    <button class="big-btn blue" id="onJoinBtn">部屋に入る</button>
+  </div>
+  <div id="onHost" hidden>
+    <div class="win-sub">部屋のコード</div>
+    <div class="code" id="onCode">----</div>
+  </div>
+  <div id="onJoin" hidden class="row">
+    <input class="code-in" id="onCodeIn" inputmode="numeric" maxlength="4" placeholder="0000" autocomplete="off">
+    <button class="big-btn gold" id="onJoinGo">入る</button>
+  </div>
+  <div class="win-sub" id="onStatus">部屋を作るか、友達から聞いた4ケタのコードで部屋に入ってね</div>
+  <button class="big-btn ghost" id="onBack">もどる</button>
+</div>
+
 <div id="pause" class="screen">
-  <div class="win-label">ポーズ</div>
+  <div class="win-label" id="pauseTitle">ポーズ</div>
   <button class="big-btn gold" id="resumeBtn">つづける</button>
   <button class="big-btn ghost" id="quitBtn">タイトルへ</button>
 </div>
@@ -445,6 +471,11 @@ const TUTORIAL = [
   { key: 'fight', need: 1, touch: '最後は実戦！よわいCPUを場外に落とすか、HPを0にしたら勝ち', pc: '最後は実戦！よわいCPUを場外に落とすか、HPを0にしたら勝ち' },
 ];
 const LS_TUT = 'battlephase_tutorial_v1';
+// オンライン対戦（ルームコード）：部屋を作った側（ホスト）が試合を計算し、入った側（ゲスト）は操作を送って結果を映す
+//   つなぐ仲介は PeerJS の無料サーバー。部屋のコード4ケタ → ID「battlephase-v1-コード」
+const NET = { role: null, me: 0, peer: null, conn: null, lastRx: 0, warnT: 0, builds: [null, null], again: [false, false], snap: null, remote: null, edges: {}, events: [], proj: new Map(), seq: 0 };
+const NET_PREFIX = 'battlephase-v1-';
+const NET_STATES = ['idle', 'attack', 'charge', 'dash', 'dodge'];
 const CPU_BASE_LV = 2;   // レベル指定のないCPU（観戦・シミュレーター）はこの強さ
 // 勝ち抜きモード：何連勝したかで相手のつよさが上がる（この連勝数から）
 const ENDLESS_LV = [0, 3, 6, 10];
@@ -886,6 +917,7 @@ addEventListener('resize', () => {
    ========================================================= */
 let AC = null;
 function sfx(kind) {
+  if (netRec()) NET.events.push(['sfx', kind]);
   try {
     AC ??= new (window.AudioContext || window.webkitAudioContext)();
     if (AC.state === 'suspended') AC.resume();
@@ -963,7 +995,7 @@ function readPad(i) {
 // iPhone の長押しルーペ・コピーメニュー・ダブルタップ拡大を止める（入力欄は除く）
 for (const ev of ['touchstart', 'touchmove']) {
   document.addEventListener(ev, e => {
-    if (mode === 'battle' && !e.target.closest('input, textarea, button.big-btn, #pauseBtn, #pause, #result')) e.preventDefault();
+    if (mode === 'battle' && !e.target.closest('input, textarea, button.big-btn, #pauseBtn, #pause, #result, #tut')) e.preventDefault();
   }, { passive: false });
 }
 document.addEventListener('contextmenu', e => { if (!e.target.closest('input, textarea')) e.preventDefault(); });
@@ -1035,7 +1067,7 @@ function buildTouch(players) {
 function updateTouchCd() {
   if (!IS_TOUCH) return;
   document.querySelectorAll('#touch .tpad').forEach((pad, n) => {
-    const f = G.fighters[G.vsCPU ? 0 : n];
+    const f = G.fighters[NET.role === 'guest' ? 1 : G.vsCPU ? 0 : n];
     if (!f) return;
     const b = pad.querySelector('.skl');
     b.style.setProperty('--p', f.sp.toFixed(3));
@@ -1075,6 +1107,7 @@ const pGeo = new THREE.BoxGeometry(1, 1, 1);
 const pMats = {};
 function pMat(c) { return pMats[c] ??= new THREE.MeshBasicMaterial({ color: c }); }
 function burst(pos, color, n = 10, speed = 6, size = 0.14, gravity = 14, life = 0.5) {
+  if (netRec()) NET.events.push(['burst', [pos.x, pos.y, pos.z], color, n, speed, size, gravity, life]);
   for (let i = 0; i < n; i++) {
     const m = new THREE.Mesh(pGeo, pMat(color));
     m.position.copy(pos); m.scale.setScalar(size * (0.6 + Math.random() * 0.8));
@@ -1096,12 +1129,14 @@ function updateParticles(dt) {
 
 const effects = [];
 function ringFx(pos, color, maxR = 3.5, dur = 0.45) {
+  if (netRec()) NET.events.push(['ring', [pos.x, pos.y, pos.z], color, maxR, dur]);
   const m = new THREE.Mesh(new THREE.TorusGeometry(1, 0.12, 8, 48), new THREE.MeshBasicMaterial({ color, transparent: true }));
   m.rotation.x = Math.PI / 2; m.position.copy(pos); m.position.y += 0.1; scene.add(m);
   effects.push({ t: 0, dur, update(e) { const k = e.t / dur; m.scale.setScalar(0.2 + k * maxR); m.material.opacity = 1 - k; }, dispose() { scene.remove(m); } });
 }
 // ガードした瞬間、盾の位置から六角形の波紋を広げる
 function guardRipple(f) {
+  if (netRec()) NET.events.push(['ripple', f.idx]);
   const m = new THREE.Mesh(new THREE.RingGeometry(0.62, 0.78, 6), new THREE.MeshBasicMaterial({ color: 0xbfe9ff, transparent: true, side: THREE.DoubleSide, depthWrite: false }));
   const fw = f.fwd;
   m.position.set(f.pos.x + fw.x * 0.8 * f.b.size, f.pos.y + 0.85 * f.b.size, f.pos.z + fw.z * 0.8 * f.b.size);
@@ -1119,6 +1154,7 @@ function updateEffects(dt) {
 const dmgLayer = document.getElementById('dmg');
 const dmgNums = [];
 function dmgNumber(pos, text, color = '#fff') {
+  if (netRec()) NET.events.push(['dmg', [pos.x, pos.y, pos.z], String(text), color]);
   const el = document.createElement('div'); el.className = 'dn'; el.textContent = text; el.style.color = color;
   dmgLayer.appendChild(el);
   dmgNums.push({ el, pos: pos.clone(), t: 0, vx: (Math.random() - 0.5) * 1.5 });
@@ -1415,7 +1451,7 @@ class Fighter {
     scene.add(m);
     const w = this.st.weapon;
     G.projectiles.push({
-      m, owner: this, vel: f.multiplyScalar(big ? 16 : w.projSpeed * ORB.speed), life: big ? 1.4 : 1.1, r: size,
+      id: ++NET.seq, m, owner: this, vel: f.multiplyScalar(big ? 16 : w.projSpeed * ORB.speed), life: big ? 1.4 : 1.1, r: size,
       dmg: big ? 14 : w.dmg * (charged ? 1.4 + 0.6 * charged : 1), knock: big ? 11 : w.knock * (charged ? 1.3 + 0.4 * charged : 1),
       element: this.b.element, color, skill: big, breaker: charged > 0, chain: big || charged ? -1 : this.chain,
     });
@@ -1691,6 +1727,7 @@ function applyHit(att, tgt, dmg, knock, dir, elem, lift = 0, bySkill = false, br
       G.skillKO = true;
       const sp = hitPos.clone().project(camera);
       G.pendingShatter = { x: (sp.x + 1) / 2 * innerWidth, y: (1 - sp.y) / 2 * innerHeight };
+      if (netRec()) NET.events.push(['shatter', (sp.x + 1) / 2, (1 - sp.y) / 2]);
     }
     tgt.hp = 0; tgt.dead = true;
     tgt.vel.x *= 1.8; tgt.vel.z *= 1.8; tgt.vel.y += 7;
@@ -1890,6 +1927,7 @@ const $ = id => document.getElementById(id);
 const announceEl = $('announce');
 let announceTimer = 0;
 function announce(text, dur = 1.2) {
+  if (netRec()) NET.events.push(['ann', text, dur]);
   announceEl.innerHTML = ''; const s = document.createElement('span'); s.textContent = text; announceEl.appendChild(s);
   announceTimer = dur;
 }
@@ -1898,7 +1936,7 @@ function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<'
 function buildHud() {
   G.fighters.forEach((f, i) => {
     $('hud' + i).innerHTML = `
-      <div class="nm"><span class="badge ${i ? 'p2' : ''}">${f.cpu ? 'CPU' : (i + 1) + 'P'}</span>${esc(f.b.name)}</div>
+      <div class="nm"><span class="badge ${i ? 'p2' : ''}">${NET.role ? (i === NET.me ? 'あなた' : 'あいて') : f.cpu ? 'CPU' : (i + 1) + 'P'}</span>${esc(f.b.name)}</div>
       <div class="hp"><div class="lag"></div><div class="cur"></div></div>
       <div class="gb"><i></i></div>
       <div class="meta"><span class="spg"><i></i><b></b></span><span class="stars"></span></div>`;
@@ -1935,7 +1973,7 @@ function startBattle() {
   for (const f of G.fighters) f.dispose();
   for (const p of G.projectiles) scene.remove(p.m);
   G.projectiles = [];
-  G.fighters = [new Fighter(G.builds[0], 0, G.watch), new Fighter(G.builds[1], 1, G.vsCPU || G.watch)];
+  G.fighters = [new Fighter(G.builds[0], 0, G.watch), new Fighter(G.builds[1], 1, (G.vsCPU || G.watch) && !NET.role)];
   if (G.streak < 0) G.streak = 0;
   if (G.vsCPU && !G.watch) G.fighters[1].cpuLv = G.endless ? endlessLv() : G.cpuLv;
   G.need = G.endless || G.tut ? 1 : 2;   // 勝ち抜き・チュートリアルは1本勝負でテンポよく
@@ -1969,7 +2007,7 @@ function updateBattle(dt) {
   const inputs = G.fighters.map((f, i) => {
     if (G.phase !== 'fight') return NO_INPUT;
     if (f.cpu) return cpuInput(f, G.fighters[1 - i], dt);
-    return readInput(i, G.vsCPU);
+    return NET.role === 'host' && i === 1 ? netTakeInput() : readInput(i, G.vsCPU);
   });
   a.update(dt, inputs[0], b);
   b.update(dt, inputs[1], a);
@@ -2004,6 +2042,7 @@ function updateBattle(dt) {
       $('winName').style.color = champ ? '#3fa9ff' : '#ff4d6d';
       showResult(champ);
       show('result');
+      if (NET.role === 'host') netSend({ t: 'over', champ, w: G.wins });
       mode = 'result';
       if (G.watch) setTimeout(() => { if (mode === 'result' && G.watch) { G.builds = [randomBuild(), randomBuild()]; startBattle(); } }, 3500);
     } else { G.round++; startRound(); }
@@ -2043,6 +2082,14 @@ function updateCamera(dt, frozen = false) {
 }
 
 function togglePause() {
+  // オンライン中は試合を止めずに、メニューだけ出す（相手の画面は動いたまま）
+  if (NET.role) {
+    const open = !$('pause').classList.contains('on');
+    $('pauseTitle').textContent = open ? '対戦中（止まりません）' : 'ポーズ';
+    $('quitBtn').textContent = open ? '対戦をやめる' : 'タイトルへ';
+    show(open ? 'pause' : 'hud', true);
+    return;
+  }
   G.paused = !G.paused;
   show(G.paused ? 'pause' : 'hud', true);
 }
@@ -2477,6 +2524,210 @@ function buildCpuLv() {
 }
 buildCpuLv();
 
+// ===== オンライン対戦 =====
+const netRec = () => NET.role === 'host' && (mode === 'battle' || mode === 'result');
+function netSend(msg) { try { if (NET.conn && NET.conn.open) NET.conn.send(msg); } catch { /* 切れていたら送らない */ } }
+// PeerJS はオンライン対戦を選んだときだけ読み込む（アプリ同梱版 → なければ CDN）
+function loadPeer() {
+  if (window.Peer) return Promise.resolve();
+  const add = src => new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = rej; document.head.appendChild(s); });
+  return add('./vendor/peerjs.min.js').catch(() => add('https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js'));
+}
+function onStatus(t) { $('onStatus').textContent = t; }
+function openOnline() {
+  netClose();
+  G.watch = false; G.endless = false; G.tut = null;
+  $('onMenu').hidden = false; $('onHost').hidden = true; $('onJoin').hidden = true;
+  onStatus('部屋を作るか、友達から聞いた4ケタのコードで部屋に入ってね');
+  show('online');
+}
+function netClose() {
+  const was = NET.role;
+  try { NET.conn && NET.conn.close(); } catch {}
+  try { NET.peer && NET.peer.destroy(); } catch {}
+  for (const m of NET.proj.values()) scene.remove(m);
+  Object.assign(NET, { role: null, me: 0, peer: null, conn: null, builds: [null, null], again: [false, false], snap: null, remote: null, edges: {}, events: [] });
+  NET.proj = new Map();
+  if (was) G.vsCPU = false;
+}
+async function netCreateRoom() {
+  $('onMenu').hidden = true; $('onHost').hidden = false; $('onCode').textContent = '----';
+  onStatus('部屋を準備しています…');
+  try { await loadPeer(); } catch { onStatus('通信の準備ができませんでした。ネットにつながっているか確かめてね'); return; }
+  const tryOpen = (n) => {
+    const code = String(Math.floor(1000 + Math.random() * 9000));
+    const peer = new Peer(NET_PREFIX + code);
+    NET.peer = peer;
+    peer.on('open', () => { $('onCode').textContent = code; onStatus('このコードを友達に伝えてね。相手が入るのを待っています…'); });
+    peer.on('error', e => {
+      if (e.type === 'unavailable-id' && n < 5) { peer.destroy(); tryOpen(n + 1); return; }   // コードがかぶったら作り直す
+      onStatus('通信エラー：' + (e.type || e.message) + '。もどってやり直してね');
+    });
+    peer.on('connection', conn => {
+      if (NET.conn) { conn.close(); return; }   // 部屋は2人まで
+      netSetup(conn, 'host');
+    });
+  };
+  tryOpen(0);
+}
+async function netJoinRoom() {
+  const code = $('onCodeIn').value.replace(/\D/g, '');
+  if (code.length !== 4) { onStatus('4ケタの数字を入れてね'); return; }
+  onStatus('つないでいます…');
+  try { await loadPeer(); } catch { onStatus('通信の準備ができませんでした。ネットにつながっているか確かめてね'); return; }
+  if (NET.peer) { try { NET.peer.destroy(); } catch {} }
+  const peer = new Peer();
+  NET.peer = peer;
+  peer.on('open', () => {
+    const conn = peer.connect(NET_PREFIX + code, { reliable: true });
+    conn.on('open', () => netSetup(conn, 'guest'));
+  });
+  peer.on('error', e => onStatus(e.type === 'peer-unavailable' ? 'その部屋が見つからなかったよ。コードを確かめてね' : '通信エラー：' + (e.type || e.message)));
+}
+function netSetup(conn, role) {
+  NET.conn = conn; NET.role = role; NET.me = role === 'host' ? 0 : 1; NET.lastRx = performance.now();
+  G.vsCPU = true;   // 自分の操作はタッチ・キーボードの1人分
+  conn.on('data', netOnData);
+  conn.on('close', () => { if (NET.role) { toast('相手との接続が切れました', 3000); netClose(); goTitle(); } });
+  sfx('go');
+  toast('つながった！キャラを作ってね', 2500);
+  openCreator(0);
+}
+// キャラを決めたら相手に送る（手書きの絵は大きすぎると送れないので、そのときはパーツの見た目にする）
+function netSubmitBuild() {
+  const b = structuredClone(cur);
+  if (b.drawing && b.drawing.length > 120000) { b.drawing = ''; b.bodyMode = 'parts'; toast('絵が大きすぎるので、パーツの見た目で戦います', 2500); }
+  NET.builds[NET.me] = b;
+  if (preview) { preview.dispose(); preview = null; }
+  netSend({ t: 'build', b });
+  show('online');
+  $('onMenu').hidden = true; $('onHost').hidden = true; $('onJoin').hidden = true;
+  onStatus('相手のキャラ作りを待っています…');
+  netTryStart();
+}
+function netTryStart() {
+  if (NET.role !== 'host' || !NET.builds[0] || !NET.builds[1]) return;
+  G.builds = [NET.builds[0], NET.builds[1]];
+  netSend({ t: 'start', builds: G.builds });
+  netStartBattle();
+}
+function netTryRestart() {
+  if (NET.role !== 'host' || !NET.again[0] || !NET.again[1]) return;
+  NET.again = [false, false];
+  netSend({ t: 'start', builds: G.builds });
+  netStartBattle();
+}
+// 相手からのデータが止まったら知らせる（アプリを閉じた・電波が切れたなど）。30秒もどらなければ終わる
+//   戻り値 true のあいだ、ホストは試合を進めない（相手がいないあいだに一方的に殴られないように）
+function netStalled() {
+  if (!NET.role || mode !== 'battle') return false;
+  const gap = performance.now() - NET.lastRx;
+  if (gap > 30000) { toast('相手との接続が切れました', 3000); netClose(); goTitle(); return true; }
+  if (gap > 2500 && performance.now() - NET.warnT > 2000) { NET.warnT = performance.now(); toast('相手の通信が止まっています…', 1900); }
+  return gap > 1500;
+}
+function netStartBattle() {
+  NET.lastRx = performance.now();
+  for (const m of NET.proj.values()) scene.remove(m);
+  NET.proj = new Map(); NET.snap = null; NET.remote = null; NET.edges = {}; NET.events = [];
+  startBattle();
+  toast(NET.role === 'host' ? 'あなたは赤（左）だよ' : 'あなたは青（右）だよ', 2500);
+}
+function netOnData(m) {
+  if (!m || typeof m !== 'object') return;
+  NET.lastRx = performance.now();
+  if (m.t === 'build') { NET.builds[1 - NET.me] = sanitize(m.b); netTryStart(); }
+  else if (m.t === 'start' && NET.role === 'guest') { G.builds = m.builds.map(sanitize); netStartBattle(); }
+  else if (m.t === 'i' && NET.role === 'host') {
+    NET.remote = m;
+    for (const k of ['attack', 'skill', 'jump']) if (m[k]) NET.edges[k] = true;   // 押した瞬間は取りこぼさない
+  }
+  else if (m.t === 's' && NET.role === 'guest') {
+    if (NET.snap && NET.snap.ev) m.ev = NET.snap.ev.concat(m.ev || []);   // 映す前に次が来ても演出は落とさない
+    NET.snap = m;
+  }
+  else if (m.t === 'over' && NET.role === 'guest') {
+    G.wins = m.w; G.phase = 'over';
+    $('winName').textContent = G.fighters[m.champ].b.name;
+    $('winName').style.color = m.champ ? '#3fa9ff' : '#ff4d6d';
+    showResult(m.champ); show('result'); mode = 'result';
+  }
+  else if (m.t === 'again') { NET.again[1 - NET.me] = true; netTryRestart(); }
+}
+// ホスト：ゲストの操作（押した瞬間はまとめて1回分）
+function netTakeInput() {
+  const r = NET.remote;
+  if (!r) return NO_INPUT;
+  const out = { mx: r.mx, mz: r.mz, guard: r.guard, attackHeld: r.attackHeld, attack: !!NET.edges.attack, skill: !!NET.edges.skill, jump: !!NET.edges.jump };
+  NET.edges = {};
+  return out;
+}
+// ホスト：毎フレーム、試合の状態と演出をゲストに送る
+function netSendSnapshot() {
+  if (!NET.conn) return;
+  const fs = f => [f.pos.x, f.pos.y, f.pos.z, f.vel.x, f.vel.y, f.vel.z, f.yaw, f.hp, f.sp, f.gm, NET_STATES.indexOf(f.state), f.atkT, f.chargeT, f.charged,
+    f.hitstun, f.guarding ? 1 : 0, f.guardAge, f.dead ? 1 : 0, f.out ? 1 : 0, f.invuln, f.dodgeT, f.flash, f.guardFlash || 0, f.grounded ? 1 : 0,
+    f.status.burn, f.status.poison, f.status.slow, f.status.stun, f.status.shield];
+  netSend({ t: 's', ph: G.phase, r: G.round, w: G.wins, k: G.shake, f: G.fighters.map(fs),
+    p: G.projectiles.map(p => [p.id, p.m.position.x, p.m.position.y, p.m.position.z, p.r, p.color]), ev: NET.events });
+  NET.events = [];
+}
+// ゲスト：操作を送り、届いた状態を映す
+function netGuestUpdate(dt) {
+  if (announceTimer > 0) { announceTimer -= dt; if (announceTimer <= 0) announceEl.innerHTML = ''; }
+  if (mode === 'battle') {
+    const r = readInput(0, false);
+    netSend({ t: 'i', mx: r.mx, mz: r.mz, attack: !!r.attack, skill: !!r.skill, jump: !!r.jump, guard: !!r.guard, attackHeld: !!r.attackHeld });
+  }
+  const sn = NET.snap;
+  if (sn) {
+    NET.snap = null;
+    if (mode === 'battle') { G.phase = sn.ph; G.round = sn.r; G.wins = sn.w; }
+    G.shake = Math.max(G.shake, sn.k || 0);
+    sn.f.forEach((a, i) => {
+      const f = G.fighters[i]; if (!f) return;
+      f.pos.set(a[0], a[1], a[2]); f.vel.set(a[3], a[4], a[5]); f.yaw = f.targetYaw = a[6];
+      f.hp = a[7]; f.sp = a[8]; f.gm = a[9]; f.state = NET_STATES[a[10]] || 'idle'; f.atkT = a[11]; f.chargeT = a[12]; f.charged = a[13];
+      f.hitstun = a[14]; f.guarding = !!a[15]; f.guardAge = a[16]; f.dead = !!a[17]; f.out = !!a[18]; f.invuln = a[19]; f.dodgeT = a[20];
+      f.flash = a[21]; f.guardFlash = a[22]; f.grounded = !!a[23];
+      Object.assign(f.status, { burn: a[24], poison: a[25], slow: a[26], stun: a[27], shield: a[28] });
+    });
+    // 弾：番号ごとに作る・動かす・消す
+    const alive = new Set();
+    for (const [id, x, y, z, r, color] of sn.p) {
+      alive.add(id);
+      let m = NET.proj.get(id);
+      if (!m) {
+        m = new THREE.Mesh(new THREE.SphereGeometry(r, 16, 12), new THREE.MeshBasicMaterial({ color }));
+        m.add(new THREE.Mesh(new THREE.SphereGeometry(r * 1.6, 16, 12), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.3, depthWrite: false })));
+        scene.add(m); NET.proj.set(id, m);
+      }
+      m.position.set(x, y, z);
+    }
+    for (const [id, m] of NET.proj) if (!alive.has(id)) { scene.remove(m); NET.proj.delete(id); }
+    // 演出を再生
+    const V = a => new THREE.Vector3(a[0], a[1], a[2]);
+    for (const e of sn.ev || []) {
+      if (e[0] === 'sfx') sfx(e[1]);
+      else if (e[0] === 'burst') burst(V(e[1]), e[2], e[3], e[4], e[5], e[6], e[7]);
+      else if (e[0] === 'ring') ringFx(V(e[1]), e[2], e[3], e[4]);
+      else if (e[0] === 'ripple' && G.fighters[e[1]]) guardRipple(G.fighters[e[1]]);
+      else if (e[0] === 'dmg') dmgNumber(V(e[1]), e[2], e[3]);
+      else if (e[0] === 'ann') announce(e[1], e[2]);
+      else if (e[0] === 'shatter') G.pendingShatter = { x: e[1] * innerWidth, y: e[2] * innerHeight };
+    }
+  }
+  for (const f of G.fighters) f.animate(dt);
+  updateHud(dt);
+  updateTouchCd();
+  updateCamera(dt);
+}
+$('onCreate').onclick = () => { sfx('select'); netCreateRoom(); };
+$('onJoinBtn').onclick = () => { sfx('select'); $('onMenu').hidden = true; $('onJoin').hidden = false; onStatus('友達から聞いた4ケタのコードを入れてね'); setTimeout(() => $('onCodeIn').focus(), 50); };
+$('onJoinGo').onclick = () => { sfx('select'); netJoinRoom(); };
+$('onCodeIn').addEventListener('keydown', e => { if (e.key === 'Enter') netJoinRoom(); });
+$('onBack').onclick = () => { sfx('select'); netClose(); goTitle(); };
+
 // チュートリアル
 function startTutorial() {
   G.watch = false; G.endless = false; G.vsCPU = true; G.streak = 0;
@@ -2561,6 +2812,12 @@ const endlessLv = () => ENDLESS_LV.filter(n => G.streak >= n).length - 1;
 function showResult(champ) {
   const label = $('winLabel'), sub = $('winSub'), again = $('againBtn');
   $('remakeBtn').hidden = false;
+  if (NET.role) {
+    label.textContent = champ === NET.me ? 'YOU WIN!' : 'YOU LOSE…';
+    sub.textContent = ''; again.textContent = 'もう一回！'; $('remakeBtn').hidden = true;
+    NET.again = [false, false];
+    return;
+  }
   if (G.tut) {
     $('tut').hidden = true;
     if (champ === 0) { saveNum(LS_TUT, 1); label.textContent = 'チュートリアル クリア！'; sub.textContent = 'つぎは「勝ち抜きモード」で何連勝できるか挑戦してみよう！'; }
@@ -2596,6 +2853,7 @@ document.querySelectorAll('[data-go]').forEach(b => b.onclick = () => {
   G.watch = go === 'watch';
   G.endless = go === 'endless'; G.streak = 0;
   if (go === 'tutorial') { startTutorial(); return; }
+  if (go === 'online') { openOnline(); return; }
   if (go === 'endless') { G.vsCPU = true; openCreator(0); return; }
   if (go === 'best') {
     const best = loadBest(); if (!best) return;
@@ -2617,6 +2875,7 @@ document.querySelectorAll('[data-go]').forEach(b => b.onclick = () => {
 $('okBtn').onclick = () => {
   sfx('go');
   if (!cur.name.trim()) cur.name = randName();
+  if (NET.role) { netSubmitBuild(); return; }
   G.builds[createStep] = structuredClone(cur);
   if (preview) { preview.dispose(); preview = null; }
   if (G.vsCPU) {
@@ -2630,11 +2889,13 @@ $('okBtn').onclick = () => {
 };
 $('backBtn').onclick = () => {
   if (preview) { preview.dispose(); preview = null; }
+  if (NET.role) { netClose(); goTitle(); return; }
   if (createStep === 1 && !G.vsCPU) { G.builds[1] = structuredClone(cur); openCreator(0); return; }
   goTitle();
 };
 $('againBtn').onclick = () => {
   sfx('go');
+  if (NET.role) { NET.again[NET.me] = true; netSend({ t: 'again' }); $('againBtn').textContent = '相手を待っています…'; netTryRestart(); return; }
   if (G.tut) { const won = G.wins[0] > G.wins[1]; startTutorial(); if (!won) { G.tut.step = TUTORIAL.length - 1; G.fighters[1].b.name = 'よわいCPU'; buildHud(); tutShow(); } return; }
   if (G.vsCPU) G.builds[1] = randomBuild(); startBattle();
 };
@@ -2645,10 +2906,10 @@ $('tutSkip').onclick = () => {
   else { endTutorial(); goTitle(); }
 };
 $('remakeBtn').onclick = () => { G.watch = false; cleanupBattle(); openCreator(0); };
-$('toTitleBtn').onclick = () => { G.watch = false; G.endless = false; endTutorial(); goTitle(); };
+$('toTitleBtn').onclick = () => { G.watch = false; G.endless = false; endTutorial(); netClose(); goTitle(); };
 $('resumeBtn').onclick = togglePause;
 $('pauseBtn').onclick = () => { if (mode === 'battle' && !G.paused) togglePause(); };
-$('quitBtn').onclick = () => { G.paused = false; G.watch = false; G.endless = false; endTutorial(); goTitle(); };
+$('quitBtn').onclick = () => { G.paused = false; G.watch = false; G.endless = false; endTutorial(); netClose(); goTitle(); };
 
 function cleanupBattle() {
   buildTouch([]);
@@ -2696,11 +2957,15 @@ function loop() {
     renderer.render(pScene, camera);
   } else {
     if (mode === 'title') updateTitle(dt);
-    if (mode === 'battle' || mode === 'result') {
+    const stalled = netStalled();
+    if ((mode === 'battle' || mode === 'result') && NET.role === 'guest') netGuestUpdate(dt);
+    else if (stalled && NET.role === 'host') { updateCamera(dt); }
+    else if (mode === 'battle' || mode === 'result') {
       if (mode === 'result') { G.fighters.forEach((f, i) => f.update(dt, NO_INPUT, G.fighters[1 - i])); updateCamera(dt); }
       else updateBattle(dt);
     }
     if (!G.paused) { updateParticles(dt); updateEffects(dt); updateDmgNums(dt); }
+    if (NET.role === 'host' && (mode === 'battle' || mode === 'result')) netSendSnapshot();
     renderer.render(scene, camera);
     if (G.pendingShatter) { const p = G.pendingShatter; G.pendingShatter = null; shatterScreen(p.x, p.y); }
   }
