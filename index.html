@@ -172,6 +172,16 @@
   .win-name { font-family: "Mochiy Pop One"; font-size: clamp(36px, 7vw, 80px); text-shadow: 0 6px 20px rgba(0,0,0,.6); }
   .win-label { font-family: "Mochiy Pop One"; font-size: 28px; color: var(--gold); }
 
+  /* チュートリアルの案内 */
+  #tut { position: fixed; left: 50%; top: calc(110px + env(safe-area-inset-top, 0px)); transform: translateX(-50%); z-index: 25; width: min(560px, calc(100% - 32px));
+    background: rgba(27, 21, 48, .88); border: 2px solid var(--gold); border-radius: 16px; padding: 10px 14px; display: flex; gap: 10px; align-items: center; pointer-events: auto; }
+  #tut[hidden] { display: none; }
+  #tut .tstep { font-family: "Mochiy Pop One", sans-serif; color: var(--gold); font-size: 13px; white-space: nowrap; }
+  #tut .ttext { flex: 1; font-weight: 800; font-size: 15px; line-height: 1.4; }
+  #tut .tcount { color: var(--gold); font-weight: 800; white-space: nowrap; }
+  #tut button { border: none; border-radius: 10px; background: rgba(255,255,255,.15); color: #fff; font-weight: 800; padding: 6px 10px; font-size: 12px; }
+  #tut.done { border-color: #7dff9a; }
+  @media (max-height: 500px) { #tut { top: calc(64px + env(safe-area-inset-top, 0px)); padding: 6px 10px; } #tut .ttext { font-size: 13px; } }
   #toast { position: fixed; left: 50%; bottom: 30px; transform: translateX(-50%); background: #000c; padding: 10px 18px; border-radius: 12px;
     font-weight: 800; opacity: 0; transition: opacity .3s; pointer-events: none; }
   #toast.on { opacity: 1; }
@@ -284,6 +294,7 @@
   <button class="big-btn blue" data-go="cpu">CPUと対戦</button>
   <button class="big-btn" data-go="best" id="bestGo" hidden>⭐ マイキャラで即バトル</button>
   <button class="big-btn gold" data-go="quick">🎲 おまかせ即バトル</button>
+  <button class="big-btn ghost" data-go="tutorial" id="tutGo">📘 チュートリアル</button>
   <button class="big-btn purple" data-go="endless" id="endlessGo">🏆 勝ち抜きモード</button>
   <button class="big-btn ghost" data-go="watch">👀 CPU同士を観戦</button>
   <div class="cpu-lv" id="cpuLv">CPUのつよさ</div>
@@ -335,6 +346,7 @@
     <div class="row"><button class="tool" id="mCancel">とじる</button><button class="tool" id="mOk">読み込む</button></div>
   </div>
 </div>
+<div id="tut" hidden><span class="tstep" id="tutStep"></span><span class="ttext" id="tutText"></span><span class="tcount" id="tutCount"></span><button id="tutSkip">スキップ</button></div>
 <div id="toast"></div>
 
 <script type="importmap">
@@ -413,15 +425,29 @@ const SP_HIT_CAP = 0.25;
 //   on=true にすると、当たった直後に押すと3段までつながる（2段目は威力×0.47、3段目は×0.61）
 // 相手がやられっぱなしの間に受けるダメージは合計 cap まで。超えたら「コンボ抜け」で相手は少し無敵になる（無限ハメ防止）
 const COMBO = { on: false, cap: 25, steps: [1, 0.47, 0.61], stunPad: 0.12, knock: 0.15, finKnock: 1.2, burstInvuln: 0.6 };
-// CPUのつよさ：考える間隔（小さいほど速い）・攻撃する確率・弾への反応・ガード/ステップの多さ・コンボをつなぐ確率・必殺を使う確率
+// CPUのつよさ：考える間隔（大きいほどのんびり）・攻撃する確率・弾への反応・ガード/ステップの多さ・コンボをつなぐ確率・ため攻撃・必殺を使う確率
+//   aim：攻撃するときの狙いのずれ（ラジアン）。人はスティックで狙うので、弱いCPUほど狙いが甘い
+//   「つよい」は、シミュレーターの基準になっている以前の「ふつう」と同じ動き（バランス調整はこの強さで行っている）
 const CPU_LV = [
-  { name: 'よわい', think: 1.8, atk: 0.35, react: 0.2, guard: 0.4, step: 0.3, chain: 0.3, charge: 0.3, skill: 0.25 },
-  { name: 'ふつう', think: 1,   atk: 0.6,  react: 0.5, guard: 1,   step: 1,   chain: 1,   charge: 0.6, skill: 0.5 },
-  { name: 'つよい', think: 0.6, atk: 0.75, react: 0.8, guard: 1.3, step: 1.5, chain: 1,   charge: 0.8, skill: 0.8 },
-  { name: 'おに',   think: 0.4, atk: 0.85, react: 0.95, guard: 1.6, step: 2,  chain: 1,   charge: 0.9, skill: 1 },
+  { name: 'よわい', think: 2.4, atk: 0.25, react: 0.1, guard: 0.15, step: 0.1, chain: 0.2, charge: 0.1, skill: 0.15, aim: 0.7 },
+  { name: 'ふつう', think: 1.5, atk: 0.45, react: 0.3, guard: 0.55, step: 0.5, chain: 0.6, charge: 0.35, skill: 0.35, aim: 0.35 },
+  { name: 'つよい', think: 1,   atk: 0.6,  react: 0.5, guard: 1,   step: 1,   chain: 1,   charge: 0.6, skill: 0.5, aim: 0 },
+  { name: 'おに',   think: 0.4, atk: 0.85, react: 0.95, guard: 1.6, step: 2,  chain: 1,   charge: 0.9, skill: 1, aim: 0 },
 ];
+// チュートリアル：カカシくん相手に1つずつ練習して、最後によわいCPUと1本勝負
+//   need：この回数（move は動いた距離）できたら次へ
+const TUTORIAL = [
+  { key: 'move', need: 8, touch: '画面の左側を指でなぞると動くよ。ぐるっと歩いてみよう', pc: 'WASD（または矢印）で動いてみよう' },
+  { key: 'hit', need: 3, touch: 'カカシくんに近づいて「攻撃」！スティックを倒した方向に振るよ。3回当てよう', pc: 'カカシくんに近づいて F で攻撃！向いている方向に振るよ。3回当てよう' },
+  { key: 'charge', need: 1, touch: 'カカシくんがガードした！「攻撃」を長押ししてため攻撃。ガードを割れるよ', pc: 'カカシくんがガードした！F を長押ししてため攻撃。ガードを割れるよ' },
+  { key: 'guard', need: 3, touch: 'カカシくんが殴ってくる。「ガード」を押して3回防ごう（押した直後に受けるとジャストガード）', pc: 'カカシくんが殴ってくる。R でガードして3回防ごう（押した直後に受けるとジャストガード）' },
+  { key: 'skill', need: 1, touch: '必殺ゲージを満タンにしたよ。「必殺」ボタンで必殺技を出そう', pc: '必殺ゲージを満タンにしたよ。G で必殺技を出そう' },
+  { key: 'fight', need: 1, touch: '最後は実戦！よわいCPUを場外に落とすか、HPを0にしたら勝ち', pc: '最後は実戦！よわいCPUを場外に落とすか、HPを0にしたら勝ち' },
+];
+const LS_TUT = 'battlephase_tutorial_v1';
+const CPU_BASE_LV = 2;   // レベル指定のないCPU（観戦・シミュレーター）はこの強さ
 // 勝ち抜きモード：何連勝したかで相手のつよさが上がる（この連勝数から）
-const ENDLESS_LV = [0, 2, 5, 9];
+const ENDLESS_LV = [0, 3, 6, 10];
 // 体の大きさ：強さではなく「性格」が変わる。s＝見た目と当たり判定、pow＝攻撃力、spd＝足、jump＝ジャンプ、wt＝ふっとびにくさ、swing＝振りの時間（小さいほど速い）。リーチは全員同じ
 //   シミュレーターで 大53%・中50%・小47% になるよう手で調整（2026-10-09）。swing は 0.965〜0.975 の間に崖がある（1コマ差で攻撃後の有利が入れ替わる）ので近づけない
 const SIZE = {
@@ -1117,7 +1143,7 @@ function updateDmgNums(dt) {
 const G = {
   fighters: [], projectiles: [], phase: 'idle', phaseT: 0, round: 1, wins: [0, 0],
   hitstop: 0, shake: 0, vsCPU: false, builds: [null, null], camMid: new THREE.Vector3(), paused: false,
-  cpuLv: 1, endless: false, streak: 0, need: 2,
+  cpuLv: 1, endless: false, streak: 0, need: 2, tut: null,
 };
 const PCOLOR = [0xff4d6d, 0x3fa9ff];
 
@@ -1368,6 +1394,10 @@ class Fighter {
         chainStun = w.wind + w.active + COMBO.stunPad;
       } else { dmg = w.chainSteps === 1 ? w.dmg : w.chainDmg[this.chain]; knock = w.knock * (w.chainSteps === 1 ? 1 : COMBO.finKnock); }   // 最後の段：ふっとばす
       const res = applyHit(this, opp, dmg, knock, dir, this.b.element, 0, false, c > 0, chainStun);
+      if (G.tut) {
+        if (this.idx === 0 && res !== 'dodged') tutCount(c ? 'charge' : 'hit');
+        if (this.idx === 1 && (res === 'guard' || res === 'just')) tutCount('guard');
+      }
       if (res === undefined || res === 'armor') this.hitLanded = true;
       if (chainStun && res === undefined) { this.vel.x += f.x * 3; this.vel.z += f.z * 3; }   // 少し踏み込んで次の段を届かせる
       if (c) { G.shake = Math.max(G.shake, 0.25); }
@@ -1394,6 +1424,7 @@ class Fighter {
   useSkill(opp) {
     const sk = this.st.skill;
     this.sp = 0;
+    if (G.tut && this.idx === 0) tutCount('skill');
     sfx('skill');
     const c = this.center();
     const aim = () => { if (this.stickDir !== null) this.yaw = this.targetYaw = this.stickDir; };
@@ -1777,7 +1808,8 @@ function cpuInput(f, o, dt) {
   const res = { mx: 0, mz: 0, attack: false, skill: false, jump: false, guard: false };
   const dx = o.pos.x - f.pos.x, dz = o.pos.z - f.pos.z, d = Math.hypot(dx, dz) || 0.01;
   const r = Math.hypot(f.pos.x, f.pos.z) || 0.01;
-  const w = f.st.weapon, L = CPU_LV[f.cpuLv ?? 1];
+  if (G.tut && G.tut.step < TUTORIAL.length - 1) return tutDummyInput(f, o, dt);
+  const w = f.st.weapon, L = CPU_LV[f.cpuLv ?? CPU_BASE_LV];
   // 場外からの復帰
   if (r > ARENA_R - 0.4 || (!f.grounded && r > ARENA_R - 2)) {
     res.mx = -f.pos.x / r; res.mz = -f.pos.z / r;
@@ -1789,6 +1821,7 @@ function cpuInput(f, o, dt) {
   ai.t -= dt;
   if (ai.t <= 0 && !o.dead) {
     ai.t = (0.12 + Math.random() * 0.2) * L.think;
+    ai.aimErr = L.aim ? (Math.random() * 2 - 1) * L.aim : 0;
     const want = w.type === 'orb' ? 5.5 : w.reach * 0.8;
     let mx = dx / d, mz = dz / d;
     if (w.type === 'orb' && d < want * 0.7) { mx = -mx; mz = -mz; }
@@ -1837,12 +1870,13 @@ function cpuInput(f, o, dt) {
   if (res.guard && !(ai.stepT > 0)) { res.mx = 0; res.mz = 0; }   // ガード中は止まる（勝手にステップしない）
   if (ai.stepT > 0) { ai.stepT -= dt; res.guard = true; res.mx = ai.stepDir[0]; res.mz = ai.stepDir[1]; }
   if (f.canChain() && ai.chainOK) { ai.atk = true; ai.chainOK = Math.random() < L.chain; }   // 当たったらコンボをつなぐ（弱いCPUはつながないことがある）
-  if ((ai.atk || ai.skl) && !o.dead) f.yaw = f.targetYaw = Math.atan2(dx, dz);   // CPUは自分で相手の方を向いて振る
+  const aimA = Math.atan2(dx, dz) + (ai.aimErr || 0);   // 弱いCPUは狙いが少しずれる
+  if ((ai.atk || ai.skl) && !o.dead) f.yaw = f.targetYaw = aimA;   // CPUは相手の方を向いて振る
   if (ai.atk) { res.attack = true; ai.atk = false; if (!f.canChain()) ai.chainOK = Math.random() < L.chain; }
   ai.holdT = Math.max(0, (ai.holdT || 0) - dt);
   res.attackHeld = ai.holdT > 0;
   // 人と同じく「相手の方へスティックを倒して」攻撃する（自動狙いがないため）
-  if ((res.attack || res.skill || res.attackHeld || ai.blinkFollow > 0) && !o.dead) { res.mx = dx / d * 0.6; res.mz = dz / d * 0.6; }
+  if ((res.attack || res.skill || res.attackHeld || ai.blinkFollow > 0) && !o.dead) { res.mx = Math.sin(aimA) * 0.6; res.mz = Math.cos(aimA) * 0.6; }
   if (ai.skl) { res.skill = true; ai.skl = false; if (f.st.skill === 'blink') ai.blinkFollow = 0.25; }
   if (ai.blinkFollow > 0) { ai.blinkFollow -= dt; if (ai.blinkFollow <= 0) res.attack = true; }   // ワープしたら背後から殴る
   if (ai.jmp) { res.jump = true; ai.jmp = false; }
@@ -1904,7 +1938,7 @@ function startBattle() {
   G.fighters = [new Fighter(G.builds[0], 0, G.watch), new Fighter(G.builds[1], 1, G.vsCPU || G.watch)];
   if (G.streak < 0) G.streak = 0;
   if (G.vsCPU && !G.watch) G.fighters[1].cpuLv = G.endless ? endlessLv() : G.cpuLv;
-  G.need = G.endless ? 1 : 2;   // 勝ち抜きは1本勝負でテンポよく
+  G.need = G.endless || G.tut ? 1 : 2;   // 勝ち抜き・チュートリアルは1本勝負でテンポよく
   G.wins = [0, 0]; G.round = 1;
   buildHud();
   show('hud');
@@ -1921,7 +1955,7 @@ function startRound() {
   G.phase = 'intro'; G.phaseT = 0; G.skillKO = false; G.pendingShatter = null;
   announce(G.endless ? `${G.streak + 1}人目` : 'ROUND ' + G.round, 1.1);
   if (G.endless) toast(`VS ${G.builds[1].name}（CPU：${CPU_LV[G.fighters[1].cpuLv].name}）`, 2200);
-  else if (G.round === 1 && !G.watch) toast(IS_TOUCH ? '攻撃長押し＝ため攻撃でガードを割る／ガード＋スティックで回避' : '攻撃長押し＝ため攻撃でガードを割る／ガード＋方向でステップ', 4500);
+  else if (G.round === 1 && !G.watch && !G.tut) toast(IS_TOUCH ? '攻撃長押し＝ため攻撃でガードを割る／ガード＋スティックで回避' : '攻撃長押し＝ため攻撃でガードを割る／ガード＋方向でステップ', 4500);
 }
 
 function updateBattle(dt) {
@@ -1954,7 +1988,8 @@ function updateBattle(dt) {
 
   if (G.phase === 'fight') {
     const loser = G.fighters.findIndex(f => f.out || f.dead);
-    if (loser >= 0) {
+    if (loser >= 0 && G.tut && G.tut.step < TUTORIAL.length - 1) { tutReset(); }
+    else if (loser >= 0) {
       const f = G.fighters[loser];
       G.wins[1 - loser]++;
       G.phase = 'end'; G.phaseT = 0;
@@ -1973,6 +2008,7 @@ function updateBattle(dt) {
       if (G.watch) setTimeout(() => { if (mode === 'result' && G.watch) { G.builds = [randomBuild(), randomBuild()]; startBattle(); } }, 3500);
     } else { G.round++; startRound(); }
   }
+  if (G.tut) tutUpdate(dt);
   updateHud(dt);
   updateTouchCd();
   updateCamera(dt);
@@ -2441,11 +2477,98 @@ function buildCpuLv() {
 }
 buildCpuLv();
 
+// チュートリアル
+function startTutorial() {
+  G.watch = false; G.endless = false; G.vsCPU = true; G.streak = 0;
+  G.builds = [
+    { ...defaultBuild(0), name: 'あなた', wHead: 'sword', element: 'none', skill: 'dash', bsize: 'M' },
+    { ...defaultBuild(1), name: 'カカシくん', wHead: 'sword', element: 'none', skill: 'heal', bsize: 'M', body: 'pillar', head: 'ball', eyes: 'sleepy', hat: 'none', color: '#c9a66b', accent: '#7a5a2e' },
+  ];
+  G.tut = { step: 0, count: 0, dist: 0, last: null, wait: 0, atkT: 0 };
+  startBattle();
+  G.fighters[1].cpuLv = 0;
+  tutShow();
+}
+function tutShow() {
+  const T = TUTORIAL[G.tut.step];
+  $('tut').hidden = false; $('tut').classList.remove('done');
+  $('tutStep').textContent = `${G.tut.step + 1}/${TUTORIAL.length}`;
+  $('tutText').textContent = IS_TOUCH ? T.touch : T.pc;
+  $('tutCount').textContent = T.key === 'move' || T.key === 'fight' ? '' : `${G.tut.count}/${T.need}`;
+  if (T.key === 'skill') G.fighters[0].sp = 1;
+}
+function tutCount(key) {
+  const t = G.tut, T = TUTORIAL[t.step];
+  if (!t || t.wait > 0 || T.key !== key) return;
+  t.count++;
+  $('tutCount').textContent = `${Math.min(t.count, T.need)}/${T.need}`;
+  if (t.count >= T.need) tutNext();
+}
+function tutNext() {
+  const t = G.tut;
+  t.wait = 1.1; sfx('go');
+  $('tut').classList.add('done'); $('tutText').textContent = 'できた！ 👍';
+}
+function tutUpdate(dt) {
+  const t = G.tut, p = G.fighters[0];
+  if (t.wait > 0) {
+    t.wait -= dt;
+    if (t.wait <= 0) {
+      t.step++; t.count = 0; t.dist = 0;
+      tutReset();
+      if (TUTORIAL[t.step].key === 'fight') { G.fighters[1].b.name = 'よわいCPU'; buildHud(); announce('FIGHT!', 0.8); }
+      tutShow();
+    }
+    return;
+  }
+  const T = TUTORIAL[t.step];
+  if (T.key === 'move' && G.phase === 'fight') {
+    if (t.last) t.dist += Math.hypot(p.pos.x - t.last.x, p.pos.z - t.last.z);
+    t.last = { x: p.pos.x, z: p.pos.z };
+    $('tutCount').textContent = `${Math.min(100, Math.round(t.dist / T.need * 100))}%`;
+    if (t.dist >= T.need) tutNext();
+  }
+  // 練習中はHPが減りすぎないようにする（実戦の前まで）
+  if (T.key !== 'fight') for (const f of G.fighters) if (f.hp < f.st.hp * 0.4) f.hp = f.st.hp;
+}
+// 練習中にやられたり場外に出たら、元の位置に戻してやり直し
+function tutReset() {
+  const [a, b] = G.fighters;
+  a.reset(-3, Math.PI / 2); b.reset(3, -Math.PI / 2);
+  if (TUTORIAL[G.tut.step].key === 'skill') a.sp = 1;
+  for (const p of G.projectiles) scene.remove(p.m);
+  G.projectiles = [];
+  G.phase = 'fight';
+}
+// カカシくん：練習の内容に合わせて、止まる・ガードする・ゆっくり殴る
+function tutDummyInput(f, o, dt) {
+  const res = { mx: 0, mz: 0, attack: false, skill: false, jump: false, guard: false, attackHeld: false };
+  const key = TUTORIAL[G.tut.step].key;
+  const dx = o.pos.x - f.pos.x, dz = o.pos.z - f.pos.z, d = Math.hypot(dx, dz) || 0.01;
+  f.targetYaw = Math.atan2(dx, dz);
+  if (key === 'charge') { res.guard = true; if (f.status.stun <= 0) f.gm = f.st.guardMax; }
+  if (key === 'guard') {
+    if (d > f.st.weapon.reach * 0.9) { res.mx = dx / d * 0.5; res.mz = dz / d * 0.5; }
+    G.tut.atkT -= dt;
+    if (d < f.st.weapon.reach + 0.3 && G.tut.atkT <= 0) { res.attack = true; G.tut.atkT = 1.6; f.yaw = f.targetYaw; res.mx = dx / d * 0.6; res.mz = dz / d * 0.6; }
+  }
+  return res;
+}
+function endTutorial() { G.tut = null; $('tut').hidden = true; }
+
 // 勝ち抜きモード
 const endlessLv = () => ENDLESS_LV.filter(n => G.streak >= n).length - 1;
 function showResult(champ) {
   const label = $('winLabel'), sub = $('winSub'), again = $('againBtn');
   $('remakeBtn').hidden = false;
+  if (G.tut) {
+    $('tut').hidden = true;
+    if (champ === 0) { saveNum(LS_TUT, 1); label.textContent = 'チュートリアル クリア！'; sub.textContent = 'つぎは「勝ち抜きモード」で何連勝できるか挑戦してみよう！'; }
+    else { label.textContent = 'おしい！'; sub.textContent = 'もう一回やってみよう。ガードとため攻撃がカギ！'; }
+    again.textContent = champ === 0 ? 'もう一回練習する' : 'もう一回たたかう';
+    $('remakeBtn').hidden = true;
+    return;
+  }
   if (!G.endless) { label.textContent = 'WINNER'; sub.textContent = ''; again.textContent = 'もう一回！'; return; }
   const rec = loadNum(LS_STREAK, 0);
   if (champ === 0) {
@@ -2472,6 +2595,7 @@ document.querySelectorAll('[data-go]').forEach(b => b.onclick = () => {
   const go = b.dataset.go;
   G.watch = go === 'watch';
   G.endless = go === 'endless'; G.streak = 0;
+  if (go === 'tutorial') { startTutorial(); return; }
   if (go === 'endless') { G.vsCPU = true; openCreator(0); return; }
   if (go === 'best') {
     const best = loadBest(); if (!best) return;
@@ -2509,12 +2633,22 @@ $('backBtn').onclick = () => {
   if (createStep === 1 && !G.vsCPU) { G.builds[1] = structuredClone(cur); openCreator(0); return; }
   goTitle();
 };
-$('againBtn').onclick = () => { sfx('go'); if (G.vsCPU) G.builds[1] = randomBuild(); startBattle(); };
+$('againBtn').onclick = () => {
+  sfx('go');
+  if (G.tut) { const won = G.wins[0] > G.wins[1]; startTutorial(); if (!won) { G.tut.step = TUTORIAL.length - 1; G.fighters[1].b.name = 'よわいCPU'; buildHud(); tutShow(); } return; }
+  if (G.vsCPU) G.builds[1] = randomBuild(); startBattle();
+};
+$('tutSkip').onclick = () => {
+  sfx('select');
+  if (!G.tut) return;
+  if (G.tut.step < TUTORIAL.length - 1) { G.tut.wait = 0.01; G.tut.step = TUTORIAL.length - 2; }   // 次で実戦へ
+  else { endTutorial(); goTitle(); }
+};
 $('remakeBtn').onclick = () => { G.watch = false; cleanupBattle(); openCreator(0); };
-$('toTitleBtn').onclick = () => { G.watch = false; G.endless = false; goTitle(); };
+$('toTitleBtn').onclick = () => { G.watch = false; G.endless = false; endTutorial(); goTitle(); };
 $('resumeBtn').onclick = togglePause;
 $('pauseBtn').onclick = () => { if (mode === 'battle' && !G.paused) togglePause(); };
-$('quitBtn').onclick = () => { G.paused = false; G.watch = false; G.endless = false; goTitle(); };
+$('quitBtn').onclick = () => { G.paused = false; G.watch = false; G.endless = false; endTutorial(); goTitle(); };
 
 function cleanupBattle() {
   buildTouch([]);
@@ -2530,6 +2664,9 @@ function cleanupBattle() {
 }
 function updateTitleBest() {
   const rec = loadNum(LS_STREAK, 0);
+  const tutDone = loadNum(LS_TUT, 0);
+  $('tutGo').textContent = tutDone ? '📘 チュートリアル' : '📘 はじめての人はここから！';
+  $('tutGo').className = 'big-btn ' + (tutDone ? 'ghost' : 'gold');
   $('endlessGo').textContent = rec ? `🏆 勝ち抜きモード（最高 ${rec}連勝）` : '🏆 勝ち抜きモード';
   const best = loadBest();
   $('bestGo').hidden = !best;
