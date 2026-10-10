@@ -32,7 +32,23 @@
   .screen.on { display: flex; }
 
   /* タイトル */
-  #title { flex-direction: column; align-items: center; justify-content: safe center; gap: 18px; pointer-events: none; overflow-y: auto; padding: 12px 0; }
+  /* 上にロゴ、真ん中は3Dのキャラが見えるように空け、下にメニューをまとめる */
+  #title { flex-direction: column; align-items: center; justify-content: space-between; gap: 12px; pointer-events: none; overflow-y: auto;
+    padding: calc(28px + env(safe-area-inset-top, 0px)) 16px calc(20px + env(safe-area-inset-bottom, 0px)); }
+  .ttop { text-align: center; }
+  .ttop .sub { margin: 18px 0 0; }
+  .tmenu { display: flex; flex-direction: column; align-items: center; gap: 10px; width: min(380px, 100%); }
+  .tmain { width: 100%; min-width: 0; }
+  .tgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(62px, 1fr)); gap: 6px; width: 100%; }
+  .tile { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-width: 0; padding: 10px 4px 8px; border: none; border-radius: 16px;
+    background: rgba(27, 21, 48, .8); color: #fff; font-weight: 800; font-size: 12px; white-space: nowrap; box-shadow: 0 4px 0 rgba(0,0,0,.3); transition: transform .08s; }
+  .tile b { font-size: 24px; line-height: 1.15; }
+  .tile small { font-size: 10px; color: var(--gold); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tile small:empty { display: none; }
+  .tile:active { transform: translateY(2px); box-shadow: 0 2px 0 rgba(0,0,0,.3); }
+  .tile[hidden] { display: none; }
+  .dev-only { display: none !important; }
+  body.dev .dev-only { display: flex !important; }   /* 観戦は開発用（?dev を付けたときだけ） */
   #title > * { pointer-events: auto; }
   .logo { font-family: "Mochiy Pop One", sans-serif; font-size: clamp(44px, 9vw, 110px); line-height: 1; letter-spacing: 2px;
     color: var(--gold); text-shadow: 0 6px 0 #c2410c, 0 12px 30px rgba(0,0,0,.5); transform: rotate(-3deg); margin: 0; }
@@ -45,8 +61,9 @@
   .big-btn.gold { background: var(--gold); color: #3b2300; }
   .big-btn.ghost { background: rgba(27, 21, 48, .72); }
   .big-btn.purple { background: #8a5cff; }
-  .cpu-lv { display: flex; align-items: center; gap: 6px; background: rgba(27, 21, 48, .72); padding: 6px 10px; border-radius: 14px; font-weight: 800; font-size: 14px; }
-  .cpu-lv .opt { padding: 6px 12px; }
+  .cpu-lv { display: flex; align-items: center; gap: 4px; background: rgba(27, 21, 48, .72); padding: 4px 6px 4px 12px; border-radius: 14px; font-weight: 800; font-size: 13px; }
+  .cpu-lv .lb { color: var(--muted); font-size: 12px; margin-right: 4px; white-space: nowrap; }
+  .cpu-lv .opt { padding: 5px 10px; font-size: 13px; white-space: nowrap; }
   .win-sub { font-weight: 800; font-size: 16px; color: #fff; text-shadow: 0 2px 6px #000; min-height: 1.2em; }
   .hint { color: var(--ink); font-size: 13px; text-align: center; line-height: 1.7; background: rgba(27, 21, 48, .72); padding: 8px 14px; border-radius: 12px; margin: 4px 16px 0; }
 
@@ -80,6 +97,7 @@
   details.look summary::-webkit-details-marker { display: none; }
   details.look[open] summary { background: rgba(255,210,63,.18); }
   .mode-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 10px; }
+  .mode-tabs[hidden] { display: none; }
   .mode-tabs .opt { padding: 10px 6px; font-size: 14px; }
   .padwrap { margin-top: 10px; display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
   .padwrap[hidden] { display: none; }
@@ -232,7 +250,7 @@
   body.touch #pauseBtn { display: block; }
   body.touch .ctrl { display: none; }
   body.touch [data-go="2p"] { display: none; }
-  body:not(.ready) #title .big-btn { visibility: hidden; }   /* ゲームの準備ができるまでボタンを押せない */
+  body:not(.ready) #title :is(.big-btn, .tile) { visibility: hidden; }   /* ゲームの準備ができるまでボタンを押せない */
   .mid { display: flex; flex-direction: column; align-items: center; }
 
   /* コード入力モーダル */
@@ -276,10 +294,12 @@
     body.touch #toast { top: auto; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); max-width: 40vw; font-size: 12px; padding: 6px 10px; }
   }
   @media (max-height: 500px) {
-    /* 横画面：ボタンを2列に並べて画面に収める */
-    #title { gap: 8px; flex-flow: row wrap; align-content: safe center; }
-    #title .logo, #title .sub { flex-basis: 100%; text-align: center; }
-    #title .big-btn { min-width: 0; width: min(300px, 42vw); }
+    /* 横画面：左にロゴ、右にメニュー（真ん中のキャラは見える） */
+    #title { flex-direction: row; justify-content: space-between; align-items: center;
+      padding: calc(12px + env(safe-area-inset-top, 0px)) calc(20px + env(safe-area-inset-right, 0px)) calc(12px + env(safe-area-inset-bottom, 0px)) calc(20px + env(safe-area-inset-left, 0px)); }
+    .ttop { align-self: flex-start; }
+    .tmenu { width: min(360px, 46vw); gap: 6px; }
+    .tile { padding: 6px 4px; } .tile b { font-size: 20px; }
     .cpu-lv { padding: 4px 8px; font-size: 12px; } .cpu-lv .opt { padding: 4px 9px; font-size: 12px; }
     .logo { font-size: 48px; }
     .sub { margin-bottom: 4px; }
@@ -294,20 +314,28 @@
 <script>
   // 読み込みの最初にスマホかどうかを決める（あとからボタンが消えて位置がずれ、押し間違えるのを防ぐ）
   if (matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window || location.search.includes('touch')) document.body.classList.add('touch');
+  // 開発用の機能（CPU同士の観戦）は ?dev を付けたときだけ出す
+  if (location.search.includes('dev') || location.hash === '#watch') document.body.classList.add('dev');
 </script>
 <div id="title" class="screen on">
-  <h1 class="logo">バトルフェーズ</h1>
-  <p class="sub">つくって、すぐ、なぐりあえ。</p>
-  <button class="big-btn" data-go="2p">ふたりで対戦</button>
-  <button class="big-btn blue" data-go="cpu">CPUと対戦</button>
-  <button class="big-btn" data-go="best" id="bestGo" hidden>⭐ マイキャラで即バトル</button>
-  <button class="big-btn gold" data-go="quick">🎲 おまかせ即バトル</button>
-  <button class="big-btn ghost" data-go="tutorial" id="tutGo">📘 チュートリアル</button>
-  <button class="big-btn purple" data-go="endless" id="endlessGo">🏆 勝ち抜きモード</button>
-  <button class="big-btn blue" data-go="online">🌐 友達と対戦（オンライン）</button>
-  <button class="big-btn ghost" data-go="watch">👀 CPU同士を観戦</button>
-  <div class="cpu-lv" id="cpuLv">CPUのつよさ</div>
-  <p class="hint">キャラも武器もその場で作って、そのまま対戦。<br>相手を場外に落とすか、HPを0にしたら勝ち。2本先取！</p>
+  <div class="ttop">
+    <h1 class="logo">バトルフェーズ</h1>
+    <p class="sub">つくって、すぐ、なぐりあえ。</p>
+  </div>
+  <div class="tmenu">
+    <button class="big-btn gold tmain" data-go="tutorial" id="tutMain" hidden>📘 はじめての人はここから！</button>
+    <button class="big-btn blue tmain" data-go="cpu">⚔️ CPUと対戦</button>
+    <div class="cpu-lv" id="cpuLv"></div>
+    <div class="tgrid">
+      <button class="tile" data-go="best" id="bestGo" hidden><b>⭐</b>マイキャラ<small id="bestName"></small></button>
+      <button class="tile" data-go="quick"><b>🎲</b>おまかせ</button>
+      <button class="tile" data-go="endless"><b>🏆</b>勝ち抜き<small id="endlessRec"></small></button>
+      <button class="tile" data-go="online"><b>🌐</b>オンライン</button>
+      <button class="tile" data-go="2p"><b>👥</b>ふたりで</button>
+      <button class="tile" data-go="tutorial" id="tutGo"><b>📘</b>練習</button>
+      <button class="tile dev-only" data-go="watch"><b>👀</b>観戦</button>
+    </div>
+  </div>
 </div>
 
 <div id="create" class="screen">
@@ -463,11 +491,12 @@ const COMBO = { on: false, cap: 25, steps: [1, 0.47, 0.61], stunPad: 0.12, knock
 // CPUのつよさ：考える間隔（大きいほどのんびり）・攻撃する確率・弾への反応・ガード/ステップの多さ・コンボをつなぐ確率・ため攻撃・必殺を使う確率
 //   aim：攻撃するときの狙いのずれ（ラジアン）。人はスティックで狙うので、弱いCPUほど狙いが甘い
 //   「つよい」は、シミュレーターの基準になっている以前の「ふつう」と同じ動き（バランス調整はこの強さで行っている）
+//   parry：相手の振りを見てジャストガードする確率／punish：空振り・しびれのスキに反撃する確率（おにだけ。2026-10-10）
 const CPU_LV = [
   { name: 'よわい', think: 3.0, atk: 0.18, react: 0.05, guard: 0.06, step: 0.04, chain: 0.1, charge: 0.05, skill: 0.1, aim: 0.9 },
   { name: 'ふつう', think: 2.0, atk: 0.35, react: 0.2, guard: 0.3, step: 0.25, chain: 0.4, charge: 0.2, skill: 0.25, aim: 0.5 },
   { name: 'つよい', think: 1,   atk: 0.6,  react: 0.5, guard: 1,   step: 1,   chain: 1,   charge: 0.6, skill: 0.5, aim: 0 },
-  { name: 'おに',   think: 0.4, atk: 0.85, react: 0.95, guard: 1.6, step: 2,  chain: 1,   charge: 0.9, skill: 1, aim: 0 },
+  { name: 'おに',   think: 0.2, atk: 0.9,  react: 1,    guard: 1.6, step: 2,  chain: 1,   charge: 0.9, skill: 1, aim: 0, parry: 0.85, punish: 1 },
 ];
 // チュートリアル：カカシくん相手に1つずつ練習して、最後によわいCPUと1本勝負
 //   need：この回数（move は動いた距離）できたら次へ
@@ -480,6 +509,9 @@ const TUTORIAL = [
   { key: 'fight', need: 1, touch: '最後は実戦！よわいCPUを場外に落とすか、HPを0にしたら勝ち', pc: '最後は実戦！よわいCPUを場外に落とすか、HPを0にしたら勝ち' },
 ];
 const LS_TUT = 'battlephase_tutorial_v1';
+// 手書きキャラ：false のあいだは「手書きで描く」を出さず、描いた絵があってもパーツの見た目で戦う（2026-10-10 ユーザーの希望で一旦なし。戻すときは true）
+//   描いた絵のデータ（drawing）は保存したまま残すので、true に戻せば元どおり
+const DRAW_ON = false;
 // オンライン対戦（ルームコード）：部屋を作った側（ホスト）が試合を計算し、入った側（ゲスト）は操作を送って結果を映す
 //   つなぐ仲介は PeerJS の無料サーバー。部屋のコード4ケタ → ID「battlephase-v1-コード」
 const NET = { role: null, me: 0, peer: null, conn: null, lastRx: 0, warnT: 0, mute: false, builds: [null, null], again: [false, false], snap: null, remote: null, edges: {}, events: [], proj: new Map(), seq: 0 };
@@ -488,6 +520,14 @@ const NET_STATES = ['idle', 'attack', 'charge', 'dash', 'dodge'];
 const CPU_BASE_LV = 2;   // レベル指定のないCPU（観戦・シミュレーター）はこの強さ
 // 勝ち抜きモード：何連勝したかで相手のつよさが上がる（この連勝数から）
 const ENDLESS_LV = [0, 3, 6, 10];
+// 勝ち抜きで from 連勝したあとは、1勝ごとにおにが強くなる（おに+1, +2…）。per＝1段あたり、max＝上限
+const ENDLESS_BOOST = { from: 20, dmg: [0.03, 1.6], wt: [0.015, 1.3], spd: [0.008, 1.12], think: 0.05, parry: [0.03, 0.95] };
+function applyBoost(f, k) {
+  const B = ENDLESS_BOOST, up = ([per, max]) => Math.min(max, 1 + per * k);
+  f.boost = k;
+  f.st.weapon.dmg *= up(B.dmg); f.st.weapon.chainDmg = f.st.weapon.chainDmg.map(v => v * up(B.dmg));
+  f.st.knockRes *= up(B.wt); f.st.speed *= up(B.spd);
+}
 // 体の大きさ：強さではなく「性格」が変わる。s＝見た目と当たり判定、pow＝攻撃力、spd＝足、jump＝ジャンプ、wt＝ふっとびにくさ、swing＝振りの時間（小さいほど速い）。リーチは全員同じ
 //   シミュレーターで 大53%・中50%・小47% になるよう手で調整（2026-10-09）。swing は 0.965〜0.975 の間に崖がある（1コマ差で攻撃後の有利が入れ替わる）ので近づけない
 const SIZE = {
@@ -752,7 +792,7 @@ function buildCharacter(b) {
   const root = new THREE.Group();
   const inner = new THREE.Group(); inner.scale.setScalar(sizeOf(b)); root.add(inner);
   const accM = mat(b.accent);
-  const info = b.bodyMode === 'draw' ? drawCache.get(b.drawing) : null;
+  const info = DRAW_ON && b.bodyMode === 'draw' ? drawCache.get(b.drawing) : null;
   if (info) return finishCharacter(b, root, inner, accM, info);
   const bodyM = mat(b.color);
   const footGeo = new THREE.SphereGeometry(0.2, 16, 12);
@@ -1967,7 +2007,7 @@ function cpuInput(f, o, dt) {
   const dx = o.pos.x - f.pos.x, dz = o.pos.z - f.pos.z, d = Math.hypot(dx, dz) || 0.01;
   const r = Math.hypot(f.pos.x, f.pos.z) || 0.01;
   if (G.tut && G.tut.step < TUTORIAL.length - 1) return tutDummyInput(f, o, dt);
-  const w = f.st.weapon, L = CPU_LV[f.cpuLv ?? CPU_BASE_LV];
+  const w = f.st.weapon, L = CPU_LV[f.cpuLv ?? CPU_BASE_LV], k = f.boost || 0;
   // 場外からの復帰
   if (r > ARENA_R - 0.4 || (!f.grounded && r > ARENA_R - 2)) {
     res.mx = -f.pos.x / r; res.mz = -f.pos.z / r;
@@ -1978,7 +2018,7 @@ function cpuInput(f, o, dt) {
   }
   ai.t -= dt;
   if (ai.t <= 0 && !o.dead) {
-    ai.t = (0.12 + Math.random() * 0.2) * L.think;
+    ai.t = (0.12 + Math.random() * 0.2) * L.think / (1 + ENDLESS_BOOST.think * k);
     ai.aimErr = L.aim ? (Math.random() * 2 - 1) * L.aim : 0;
     const want = w.type === 'orb' ? 5.5 : w.reach * 0.8;
     let mx = dx / d, mz = dz / d;
@@ -2021,13 +2061,41 @@ function cpuInput(f, o, dt) {
     }
   }
   ai.projT = (ai.projT || 0) - dt;
+  // 上級CPU（おに）：相手の振りを見てジャストガード、空振りやしびれのスキには必ず反撃
+  const parry = Math.min(ENDLESS_BOOST.parry[1], (L.parry || 0) + ENDLESS_BOOST.parry[0] * k), punish = L.punish || 0;
+  if ((parry || punish) && !o.dead) {
+    if (o.state === 'attack') {
+      const ow = { ...o.st.weapon, ...o.timing() };
+      if (ai.oAtkT === undefined || o.atkT < ai.oAtkT) { ai.parryGo = Math.random() < parry; ai.punishGo = Math.random() < punish; }   // 相手の攻撃1回ごとに決める
+      ai.oAtkT = o.atkT;
+      const until = ow.wind - o.atkT;   // あと何秒で当たり始めるか
+      if (ai.parryGo && ow.type !== 'orb' && d < ow.reach + f.st.radius + 0.4 && until > 0 && until < JUST_GUARD * 0.6 && f.grounded && f.state === 'idle') {
+        ai.guardT = ai.parryT = until + 0.12; ai.atk = false; ai.holdT = 0; ai.stepT = 0; ai.parryGo = false;
+        f.yaw = f.targetYaw = Math.atan2(dx, dz);   // 正面で受けないとガードにならないので、すぐ相手の方を向く
+      }
+      const left = ow.wind + ow.active + ow.recover - o.atkT;   // 相手が動けるようになるまで
+      if (ai.punishGo && o.atkT > ow.wind + ow.active && left > w.wind && d < w.reach + 0.4 && f.state === 'idle') { ai.atk = true; ai.guardT = 0; ai.punishGo = false; }
+    } else ai.oAtkT = undefined;
+    if (o.status.stun > 0.2) ai.parryT = 0;   // ジャストガードが決まって相手がしびれたら、受けの構えをやめて反撃へ
+    // しびれている相手には反撃（ガードを解いた直後は少し攻撃できないので、出るまで押し続ける）
+    if (o.status.stun > 0.05 && !ai.stunHit) { ai.stunHit = true; ai.stunGo = Math.random() < punish; }
+    if (ai.stunGo && o.status.stun > 0.05 && d < w.reach + 0.6 && f.state === 'idle') { ai.atk = true; ai.guardT = 0; }
+    if (!(o.status.stun > 0)) { ai.stunHit = false; ai.stunGo = false; }
+    // 相打ちしない：相手の振りが先に当たるときは自分から振らずに受けを待つ。相手が振ってきても跳ばない
+    if (parry && o.state === 'attack' && d < o.st.weapon.reach + 1.5) {
+      const ow = { ...o.st.weapon, ...o.timing() };
+      if (o.atkT < ow.wind && f.st.weapon.wind >= ow.wind - o.atkT) ai.atk = false;
+      if (f.grounded) ai.jmp = false;
+    }
+  }
   res.mx = ai.mx; res.mz = ai.mz;
   if (ai.dodgeT > 0) { ai.dodgeT -= dt; res.mx = ai.dodge[0]; res.mz = ai.dodge[1]; }
   ai.guardT = Math.max(0, (ai.guardT || 0) - dt);
   res.guard = ai.guardT > 0;
   if (res.guard && !(ai.stepT > 0)) { res.mx = 0; res.mz = 0; }   // ガード中は止まる（勝手にステップしない）
   if (ai.stepT > 0) { ai.stepT -= dt; res.guard = true; res.mx = ai.stepDir[0]; res.mz = ai.stepDir[1]; }
-  if (f.canChain() && ai.chainOK) { ai.atk = true; ai.chainOK = Math.random() < L.chain; }   // 当たったらコンボをつなぐ（弱いCPUはつながないことがある）
+  if (ai.parryT > 0) { ai.parryT -= dt; ai.atk = false; ai.skl = false; ai.jmp = false; ai.guardT = Math.max(ai.guardT, ai.parryT); res.guard = true; res.mx = res.mz = 0; }   // ジャストガードを狙っている間は他のことをしない
+  else if (f.canChain() && ai.chainOK) { ai.atk = true; ai.chainOK = Math.random() < L.chain; }   // 当たったらコンボをつなぐ（弱いCPUはつながないことがある）
   const aimA = Math.atan2(dx, dz) + (ai.aimErr || 0);   // 弱いCPUは狙いが少しずれる
   if ((ai.atk || ai.skl) && !o.dead) f.yaw = f.targetYaw = aimA;   // CPUは相手の方を向いて振る
   if (ai.atk) { res.attack = true; ai.atk = false; if (!f.canChain()) ai.chainOK = Math.random() < L.chain; }
@@ -2118,6 +2186,7 @@ function startBattle() {
   prewarm();
   if (G.streak < 0) G.streak = 0;
   if (G.vsCPU && !G.watch) G.fighters[1].cpuLv = G.endless ? endlessLv() : G.cpuLv;
+  if (G.endless && G.streak >= ENDLESS_BOOST.from) applyBoost(G.fighters[1], G.streak - ENDLESS_BOOST.from + 1);
   G.need = G.endless || G.tut ? 1 : 2;   // 勝ち抜き・チュートリアルは1本勝負でテンポよく
   G.wins = [0, 0]; G.round = 1;
   buildHud();
@@ -2134,7 +2203,7 @@ function startRound() {
   G.projectiles = [];
   G.phase = 'intro'; G.phaseT = 0; G.skillKO = false; G.pendingShatter = null;
   announce(G.endless ? `${G.streak + 1}人目` : 'ROUND ' + G.round, 1.1);
-  if (G.endless) toast(`VS ${G.builds[1].name}（CPU：${CPU_LV[G.fighters[1].cpuLv].name}）`, 2200);
+  if (G.endless) { const e = G.fighters[1]; toast(`VS ${G.builds[1].name}（CPU：${CPU_LV[e.cpuLv].name}${e.boost ? '+' + e.boost : ''}）`, 2200); }
   else if (G.round === 1 && !G.watch && !G.tut) toast(IS_TOUCH ? '攻撃長押し＝ため攻撃でガードを割る／ガード＋スティックで回避' : '攻撃長押し＝ため攻撃でガードを割る／ガード＋方向でステップ', 4500);
 }
 
@@ -2469,7 +2538,7 @@ function renderPanel() {
     ${optRow('ぶき', 'wHead')}${optRow('能力の系統', 'element')}${optRow('ひっさつわざ', 'skill')}${optRow('体の大きさ', 'bsize')}
     <details class="look" id="lookBox">
       <summary>🎨 見た目をカスタム（しなくてもOK）</summary>
-      <div class="mode-tabs" id="modeTabs">
+      <div class="mode-tabs" id="modeTabs"${DRAW_ON ? '' : ' hidden'}>
         <button class="opt" data-mode="parts">🧩 パーツで作る</button>
         <button class="opt" data-mode="draw">✏️ 手書きで描く</button>
       </div>
@@ -2561,7 +2630,7 @@ function sanitize(b) {
   out.gripLen = num(b.gripLen, 0, 1.4, b.wGrip === 'long' ? 1.1 : 0.55);
   out.bladeLen = num(b.bladeLen, 0.5, 1.8, 1);
   out.bladeW = num(b.bladeW, 0.5, 1.8, 1);
-  out.bodyMode = b.bodyMode === 'draw' ? 'draw' : 'parts';
+  out.bodyMode = DRAW_ON && b.bodyMode === 'draw' ? 'draw' : 'parts';
   out.drawing = (typeof b.drawing === 'string' && /^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(b.drawing) && b.drawing.length < 600000) ? b.drawing : '';
   out.size = 1;
   out.pts = defaultPts();
@@ -2656,7 +2725,7 @@ function show(id, keepHud = false) {
 G.cpuLv = Math.min(CPU_LV.length - 1, Math.max(0, loadNum(LS_CPU, 1)));
 function buildCpuLv() {
   const box = $('cpuLv');
-  box.innerHTML = 'CPUのつよさ';
+  box.innerHTML = '<span class="lb">CPUのつよさ</span>';
   CPU_LV.forEach((L, i) => {
     const b = document.createElement('button');
     b.className = 'opt' + (i === G.cpuLv ? ' sel' : ''); b.textContent = L.name;
@@ -3070,12 +3139,12 @@ function cleanupBattle() {
 function updateTitleBest() {
   const rec = loadNum(LS_STREAK, 0);
   const tutDone = loadNum(LS_TUT, 0);
-  $('tutGo').textContent = tutDone ? '📘 チュートリアル' : '📘 はじめての人はここから！';
-  $('tutGo').className = 'big-btn ' + (tutDone ? 'ghost' : 'gold');
-  $('endlessGo').textContent = rec ? `🏆 勝ち抜きモード（最高 ${rec}連勝）` : '🏆 勝ち抜きモード';
+  // チュートリアルがまだなら一番上に大きく出す。済んだら小さいタイル（練習）に
+  $('tutMain').hidden = !!tutDone; $('tutGo').hidden = !tutDone;
+  $('endlessRec').textContent = rec ? `最高 ${rec}連勝` : '';
   const best = loadBest();
   $('bestGo').hidden = !best;
-  if (best) $('bestGo').textContent = `⭐ ${best.name} で即バトル`;
+  $('bestName').textContent = best ? best.name : '';
 }
 function goTitle() {
   updateTitleBest();
