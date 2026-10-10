@@ -511,6 +511,35 @@ const TUTORIAL = [
   { key: 'fight', need: 1, touch: '最後は実戦！よわいCPUを場外に落とすか、HPを0にしたら勝ち', pc: '最後は実戦！よわいCPUを場外に落とすか、HPを0にしたら勝ち' },
 ];
 const LS_TUT = 'battlephase_tutorial_v1';
+// ===== 分析（PostHog）：リテンションや遊ばれ方を見る =====
+//   key が空のあいだは何も送らない。数えるのはアプリ（iOS）と GitHub Pages だけ（手元の確認・アーティファクト・シミュレーターは数えない）
+//   送るのは「いつ・どの画面で・何をしたか」だけ（名前や絵などの中身は送らない）
+const ANALYTICS = { key: 'phc_D5Rw35rXa8vm8tDk2gh3kBBdN8wrGEZbwGpcWMMToV7i', host: 'https://us.i.posthog.com' };   // PostHog（US・プロジェクト 656616）の公開用キー
+//   動作確認は ?antest を付けると platform=test で送る（本番の数字と分けて見られる）
+const PLATFORM = window.Capacitor?.isNativePlatform?.() ? 'ios' : /github\.io$/.test(location.hostname) ? 'web' : /antest/.test(location.search) ? 'test' : 'dev';
+const anaQueue = [];
+function track(event, props = {}) {
+  try {
+    if (!ANALYTICS.key || PLATFORM === 'dev') return;
+    if (window.posthog?.__loaded) window.posthog.capture(event, props); else anaQueue.push([event, props]);
+  } catch { /* 分析が動かなくてもゲームは続ける */ }
+}
+function initAnalytics() {
+  if (!ANALYTICS.key || PLATFORM === 'dev') return;
+  const s = document.createElement('script'); s.src = './vendor/posthog.js'; s.async = true;
+  s.onload = () => {
+    try {
+      window.posthog.init(ANALYTICS.key, {
+        api_host: ANALYTICS.host, persistence: 'localStorage', person_profiles: 'always',
+        autocapture: false, capture_pageview: false, capture_pageleave: false, disable_session_recording: true, disable_surveys: true,
+        advanced_disable_feature_flags: true,
+      });
+      window.posthog.register({ platform: PLATFORM });
+      for (const [e, p] of anaQueue.splice(0)) window.posthog.capture(e, p);
+    } catch { /* 読み込めなくても続ける */ }
+  };
+  document.head.appendChild(s);
+}
 // 手書きキャラ：false のあいだは「手書きで描く」を出さず、描いた絵があってもパーツの見た目で戦う（2026-10-10 ユーザーの希望で一旦なし。戻すときは true）
 //   描いた絵のデータ（drawing）は保存したまま残すので、true に戻せば元どおり
 const DRAW_ON = false;
@@ -2179,6 +2208,8 @@ function prewarm() {
     particles.splice(nP).forEach(q => scene.remove(q.m));
   }
 }
+// 今の試合の種類（分析用）
+function matchMode() { return NET.role ? 'online' : G.tut ? 'tutorial' : G.endless ? 'endless' : G.watch ? 'watch' : !G.vsCPU ? '2p' : G.mode || 'cpu'; }
 function startBattle() {
   clearTitleDemo();
   for (const f of G.fighters) f.dispose();
@@ -2189,6 +2220,12 @@ function startBattle() {
   if (G.streak < 0) G.streak = 0;
   if (G.vsCPU && !G.watch) G.fighters[1].cpuLv = G.endless ? endlessLv() : G.cpuLv;
   if (G.endless && G.streak >= ENDLESS_BOOST.from) applyBoost(G.fighters[1], G.streak - ENDLESS_BOOST.from + 1);
+  G.matchT0 = performance.now();
+  if (!G.watch) {
+    const me = G.builds[NET.role ? NET.me : 0] || {};
+    track('match_start', { mode: matchMode(), cpu_lv: G.vsCPU && !NET.role && !G.tut ? CPU_LV[G.fighters[1].cpuLv]?.name : null, streak: G.endless ? G.streak : null,
+                           weapon: me.wHead, element: me.element, skill: me.skill, size: me.bsize });
+  }
   G.need = G.endless || G.tut ? 1 : 2;   // 勝ち抜き・チュートリアルは1本勝負でテンポよく
   G.wins = [0, 0]; G.round = 1;
   buildHud();
@@ -2802,6 +2839,7 @@ async function netJoinRoom() {
 }
 function netSetup(conn, role) {
   NET.conn = conn; NET.role = role; NET.me = role === 'host' ? 0 : 1; NET.lastRx = performance.now();
+  track('online_connected', { role });
   G.vsCPU = true;   // 自分の操作はタッチ・キーボードの1人分
   conn.on('data', netOnData);
   conn.on('close', () => { if (NET.role) { toast('相手との接続が切れました', 3000); netClose(); goTitle(); } });
@@ -2948,6 +2986,7 @@ $('onBack').onclick = () => { sfx('select'); netClose(); goTitle(); };
 
 // チュートリアル
 function startTutorial() {
+  track('tutorial_start');
   G.watch = false; G.endless = false; G.vsCPU = true; G.streak = 0;
   G.builds = [
     { ...defaultBuild(0), name: 'あなた', wHead: 'sword', element: 'none', skill: 'dash', bsize: 'M' },
@@ -3029,6 +3068,9 @@ function endTutorial() { G.tut = null; $('tut').hidden = true; }
 const endlessLv = () => ENDLESS_LV.filter(n => G.streak >= n).length - 1;
 function showResult(champ) {
   const label = $('winLabel'), sub = $('winSub'), again = $('againBtn');
+  if (!G.watch) track('match_end', { mode: matchMode(), win: champ === (NET.role ? NET.me : 0), rounds: G.wins[0] + G.wins[1],
+                                     seconds: Math.round((performance.now() - (G.matchT0 || performance.now())) / 1000), streak: G.endless ? G.streak + (champ === 0 ? 1 : 0) : null });
+  if (G.tut && champ === 0) track('tutorial_complete');
   $('remakeBtn').hidden = false;
   if (NET.role) {
     label.textContent = champ === NET.me ? 'YOU WIN!' : 'YOU LOSE…';
@@ -3068,6 +3110,8 @@ function showResult(champ) {
 document.querySelectorAll('[data-go]').forEach(b => b.onclick = () => {
   sfx('select');
   const go = b.dataset.go;
+  G.mode = go;   // 分析用（cpu / quick / best など）
+  track('menu_select', { item: go });
   G.watch = go === 'watch';
   G.endless = go === 'endless'; G.streak = 0;
   if (go === 'tutorial') { startTutorial(); return; }
@@ -3118,6 +3162,7 @@ $('againBtn').onclick = () => {
   if (G.vsCPU) G.builds[1] = randomBuild(); startBattle();
 };
 $('tutSkip').onclick = () => {
+  if (G.tut) track('tutorial_skip', { step: G.tut.step });
   sfx('select');
   if (!G.tut) return;
   if (G.tut.step < TUTORIAL.length - 1) { G.tut.wait = 0.01; G.tut.step = TUTORIAL.length - 2; }   // 次で実戦へ
@@ -3200,6 +3245,8 @@ function loop() {
   }
   pressed.clear();
 }
+initAnalytics();
+track('app_open');   // リテンション（何日後に戻ってきたか）はこのイベントで数える
 setupTitleDemo();
 updateTitleBest();
 document.body.classList.add('ready');
