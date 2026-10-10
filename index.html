@@ -294,11 +294,13 @@
     body.touch #toast { top: auto; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); max-width: 40vw; font-size: 12px; padding: 6px 10px; }
   }
   @media (max-height: 500px) {
-    /* 横画面：左にロゴ、右にメニュー（真ん中のキャラは見える） */
-    #title { flex-direction: row; justify-content: space-between; align-items: center;
-      padding: calc(12px + env(safe-area-inset-top, 0px)) calc(20px + env(safe-area-inset-right, 0px)) calc(12px + env(safe-area-inset-bottom, 0px)) calc(20px + env(safe-area-inset-left, 0px)); }
-    .ttop { align-self: flex-start; }
-    .tmenu { width: min(360px, 46vw); gap: 6px; }
+    /* 横画面：ロゴは一番上の真ん中に1行で、その下にメニュー */
+    #title { flex-direction: column; justify-content: space-between; align-items: center; gap: 6px;
+      padding: calc(10px + env(safe-area-inset-top, 0px)) calc(20px + env(safe-area-inset-right, 0px)) calc(10px + env(safe-area-inset-bottom, 0px)) calc(20px + env(safe-area-inset-left, 0px)); }
+    .ttop { margin-top: 34px; }   /* ロゴを画面のふちから少し離す */
+    .ttop .logo { white-space: nowrap; }
+    .ttop .sub { margin: 8px 0 0; font-size: 14px; }
+    .tmenu { width: min(440px, 70vw); gap: 6px; }
     .tile { padding: 6px 4px; } .tile b { font-size: 20px; }
     .cpu-lv { padding: 4px 8px; font-size: 12px; } .cpu-lv .opt { padding: 4px 9px; font-size: 12px; }
     .logo { font-size: 48px; }
@@ -2264,6 +2266,7 @@ function updateBattle(dt) {
   updateCamera(dt);
 }
 
+const LAND_ZOOM = 0.6;   // 横画面のカメラの近さ（小さいほど寄る）
 function updateCamera(dt, frozen = false) {
   const live = G.fighters.filter(f => f.pos.y > -6);
   const list = live.length ? live : G.fighters;
@@ -2273,10 +2276,12 @@ function updateCamera(dt, frozen = false) {
   let spread = 0;
   if (G.fighters.length === 2) spread = G.fighters[0].pos.distanceTo(G.fighters[1].pos);
   spread = Math.min(spread, 18);
-  if (camera.aspect > 1) { mid.x *= 0.7; mid.z *= 0.7; }
+  //   横向きのスマホ（高さが低い横長）は画面が横に広いぶん遠くなりすぎるので、2人が収まる範囲で寄る（LAND_ZOOM 倍の距離）
+  const zoom = innerHeight < 500 && camera.aspect > 1.3 ? LAND_ZOOM : 1;
+  if (camera.aspect > 1) { const k = zoom < 1 ? 0.9 : 0.7; mid.x *= k; mid.z *= k; }   // 横長はステージの中心へ少し寄せる（寄っているときは弱めに。2人が端に寄らないように）
   if (!frozen) G.camMid.lerp(mid, Math.min(1, dt * 4));
   // 2人が横幅に収まる距離までカメラを引く（縦画面対策）
-  const oy = 8.5 + spread * 0.4, oz = 12 + spread * 0.55;
+  const oy = (8.5 + spread * 0.4) * zoom, oz = (12 + spread * 0.55) * zoom;
   const tanH = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.aspect;
   const fit = Math.max(1, (spread / 2 + 2.2) / tanH / Math.hypot(oy, oz));
   const target = new THREE.Vector3(G.camMid.x, G.camMid.y + oy * fit, G.camMid.z + oz * fit);
