@@ -178,6 +178,24 @@
   #announce span { font-family: "Mochiy Pop One"; font-size: clamp(50px, 11vw, 140px); color: var(--gold);
     text-shadow: 0 6px 0 #c2410c, 0 10px 40px rgba(0,0,0,.6); animation: pop .5s cubic-bezier(.2,1.6,.4,1); }
   @keyframes pop { from { transform: scale(2.2) rotate(-8deg); opacity: 0; } to { transform: scale(1) rotate(-3deg); opacity: 1; } }
+  /* ラウンドを取ったときの星（2本先取なら☆☆が出て、取った分がキラーンと埋まる） */
+  #roundStars { position: fixed; left: 0; right: 0; top: 64%; display: flex; flex-direction: column; align-items: center; gap: 4px; pointer-events: none; z-index: 6; }
+  #roundStars[hidden] { display: none; }
+  #roundStars .rs-name { font-family: "Mochiy Pop One", sans-serif; font-size: 18px; text-shadow: 0 2px 6px #000; animation: rsIn .3s ease-out both; }
+  #roundStars .rs-row { display: flex; gap: 14px; animation: rsIn .35s cubic-bezier(.2,1.6,.4,1) both; }
+  #roundStars .st { position: relative; width: 56px; height: 56px; font-size: 52px; line-height: 56px; text-align: center; color: rgba(255,255,255,.35); text-shadow: 0 3px 8px rgba(0,0,0,.6); }
+  #roundStars .st.on { color: var(--gold); text-shadow: 0 0 14px #ffd23f, 0 3px 8px rgba(0,0,0,.6); }
+  #roundStars .st.new { animation: rsFill .55s cubic-bezier(.2,1.8,.4,1) .55s both; }
+  #roundStars .st.new::after { content: ''; position: absolute; inset: -18px; border-radius: 50%; border: 3px solid #fff3b0; opacity: 0; animation: rsRing .6s ease-out .6s both; }
+  #roundStars .sp { position: absolute; left: 50%; top: 50%; width: 6px; height: 6px; margin: -3px; border-radius: 50%; background: #fff6c4; box-shadow: 0 0 8px #ffd23f; opacity: 0;
+    animation: rsSpark .7s ease-out .62s both; }
+  @keyframes rsIn { from { transform: translateY(14px) scale(.8); opacity: 0; } to { transform: none; opacity: 1; } }
+  @keyframes rsFill { 0% { color: rgba(255,255,255,.35); transform: scale(1); } 40% { color: #fff; transform: scale(1.7) rotate(-18deg); text-shadow: 0 0 30px #fff, 0 0 16px #ffd23f; }
+    100% { color: var(--gold); transform: scale(1) rotate(0); } }
+  @keyframes rsRing { from { transform: scale(.4); opacity: 1; } to { transform: scale(1.5); opacity: 0; } }
+  @keyframes rsSpark { 0% { transform: translate(0, 0) scale(1.4); opacity: 1; } 100% { transform: translate(var(--dx), var(--dy)) scale(.2); opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { #roundStars * { animation: none !important; } }
+  @media (max-height: 500px) { #roundStars { top: 58%; } #roundStars .st { width: 42px; height: 42px; font-size: 38px; line-height: 42px; } }
   #shatter { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
   #shatter .pc { position: absolute; inset: 0; background-size: 100% 100%; will-change: transform, opacity; }
   #shatter svg { position: absolute; inset: 0; width: 100%; height: 100%; }
@@ -246,6 +264,22 @@
   .stick i { position: absolute; left: 50%; top: 50%; width: 54px; height: 54px; margin: -27px 0 0 -27px; border-radius: 50%; background: rgba(255,255,255,.75); }
   .stick.idle { opacity: .45; }
   .tlabel { position: absolute; top: 6px; left: 50%; transform: translateX(-50%); font-weight: 800; font-size: 13px; padding: 2px 10px; border-radius: 10px; }
+  /* 設定・ボタン配置の編集 */
+  .tgear { display: inline-block; vertical-align: -14px; margin-left: 6px; width: 36px; height: 36px; border-radius: 50%;   /* サブタイトルの右横、少し下 */
+    border: none; background: rgba(27, 21, 48, .72); color: #fff; font-size: 19px; line-height: 36px; padding: 0; pointer-events: auto; }
+  #settings { align-items: center; justify-content: center; flex-direction: column; gap: 14px; background: rgba(10, 6, 25, .7); padding: 16px; text-align: center; }
+  body:not(.touch) #btnLayoutBtn { display: none; }
+  #btnEdit { position: fixed; inset: 0; z-index: 50; background: rgba(10, 6, 25, .82); touch-action: none; }
+  #btnEdit[hidden] { display: none; }
+  .be-bar { position: absolute; top: calc(10px + env(safe-area-inset-top, 0px)); left: 12px; right: 12px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: center; }
+  .be-bar b { width: 100%; text-align: center; font-family: "Mochiy Pop One", sans-serif; font-size: 16px; }
+  .be-bar label { display: flex; align-items: center; gap: 6px; font-weight: 800; font-size: 13px; }
+  .be-bar input[type=range] { width: 110px; }
+  .be-bar .tool.gold { background: var(--gold); color: #3b2300; }
+  #btnEdit .tb.sel { outline: 3px solid var(--gold); outline-offset: 3px; }   /* 大きさを変えるボタン */
+  .be-pad { left: 0; width: 100%; border-top: 2px dashed rgba(255,255,255,.35); }
+  .be-pad .be-hint { position: absolute; top: 6px; left: 0; right: 0; margin: 0; text-align: center; font-size: 12px; color: var(--muted); pointer-events: none; }
+  @media (max-height: 500px) { .be-bar b { width: auto; font-size: 14px; margin-right: 6px; } }
   #pauseBtn { display: none; pointer-events: auto; margin: 6px auto 0; border: none; border-radius: 10px; background: rgba(0,0,0,.4); color: #fff; font-weight: 800; padding: 6px 14px; font-size: 16px; }
   body.touch #pauseBtn { display: block; }
   body.touch .ctrl { display: none; }
@@ -322,7 +356,7 @@
 <div id="title" class="screen on">
   <div class="ttop">
     <h1 class="logo">バトルフェーズ</h1>
-    <p class="sub">つくって、すぐ、なぐりあえ。</p>
+    <p class="sub">つくって、すぐ、なぐりあえ。<button class="tgear" id="settingsBtn" aria-label="設定">⚙️</button></p>
   </div>
   <div class="tmenu">
     <button class="big-btn gold tmain" data-go="tutorial" id="tutMain" hidden>📘 はじめての人はここから！</button>
@@ -362,6 +396,7 @@
 <div id="flash"></div>
 <div id="dmg"></div>
 <div id="announce"></div>
+<div id="roundStars" hidden></div>
 
 <div id="result" class="screen">
   <div class="win-label" id="winLabel">WINNER</div>
@@ -393,7 +428,26 @@
 <div id="pause" class="screen">
   <div class="win-label" id="pauseTitle">ポーズ</div>
   <button class="big-btn gold" id="resumeBtn">つづける</button>
+  <button class="big-btn blue" id="btnLayoutBtn">🎮 ボタンの配置</button>
   <button class="big-btn ghost" id="quitBtn">タイトルへ</button>
+</div>
+
+<div id="settings" class="screen">
+  <div class="win-label">⚙️ 設定</div>
+  <button class="big-btn blue" id="setBtnLayout">🎮 ボタンの配置</button>
+  <div class="win-sub" id="setNote"></div>
+  <button class="big-btn ghost" id="setBack">もどる</button>
+</div>
+<div id="btnEdit" hidden>
+  <div class="be-bar">
+    <b id="beTitle"></b>
+    <label><span id="beSizeLb">大きさ</span> <input type="range" id="beSize" min="0.6" max="1.6" step="0.05"></label>
+    <button class="tool" id="beFlip">↔ 左右反転</button>
+    <button class="tool" id="beReset">元に戻す</button>
+    <button class="tool" id="beCancel">やめる</button>
+    <button class="tool gold" id="beSave">保存</button>
+  </div>
+  <div class="tpad be-pad"></div>
 </div>
 
 <div id="touch"></div>
@@ -421,7 +475,7 @@ const OPTS = {
   head:    [['ball','まる'],['cube','しかく'],['none','なし']],
   eyes:    [['normal','ふつう'],['angry','おこ'],['cyclops','ひとつ目'],['visor','バイザー'],['sleepy','ねむ']],
   hat:     [['none','なし'],['horns','ツノ'],['crown','王冠'],['antenna','アンテナ'],['tophat','シルクハット'],['halo','天使の輪'],['mohawk','モヒカン']],
-  wHead:   [['sword','剣'],['hammer','ハンマー'],['axe','オノ'],['spear','ヤリ'],['orb','魔法玉'],['fist','グローブ']],
+  wHead:   [['sword','剣'],['hammer','ハンマー'],['axe','オノ'],['spear','ヤリ'],['orb','魔法玉'],['fist','グローブ'],['hand','素手']],
   element: [['none','無'],['fire','炎'],['ice','氷'],['thunder','雷'],['poison','毒'],['wind','風']],
   skill:   [['dash','突進'],['shot','気弾'],['shield','バリア'],['heal','回復'],['quake','地震'],['blink','ワープ']],
   bsize:   [['S','ちいさい'],['M','ふつう'],['L','おおきい']],
@@ -429,7 +483,7 @@ const OPTS = {
 const DESC = {
   
   wHead: { sword: '扱いやすい万能タイプ', hammer: '振りは遅いけど、グローブ・ヤリ・魔法玉では止まらない。一発でぶっ飛ばす', axe: '剣とハンマーの中間。グローブ・ヤリ・魔法玉では止まらない',
-           spear: '遠くから突く。足も速い。間合い勝負', orb: '弾を撃つ遠距離タイプ。足は遅め', fist: '超連打。ふっとばしは弱い' },
+           spear: '遠くから突く。足も速い。間合い勝負', orb: '弾を撃つ遠距離タイプ。足は遅め', fist: '超連打。ふっとばしは弱い', hand: '武器なしでパンチ。届く距離は一番短いけど、足が一番速くて身軽' },
   element: { none: '属性なし：ダメージ +15%', fire: 'やけど：2秒間じわじわダメージ', ice: 'こおり：しばらく相手の動きを遅くする',
              thunder: 'しびれ：当てると相手が少し長く止まる', poison: 'どく：5秒間ずっとダメージ', wind: 'かぜ：ふっとばし +50%' },
   skill: { dash: '突進して体当たり', shot: '大きな気弾を撃つ', shield: '1.5秒間無敵、弾を跳ね返す',
@@ -444,12 +498,14 @@ const WEAPONS = {
   //   ・攻撃が速いほどふっとばしが弱い：ふっとばし ∝ 1回の攻撃時間
   //   ・遠距離（魔法玉）は足を遅く・ふっとばしを弱く固定（同じ速さだと近距離が永遠に追いつけないため）
   //   数値は sim/tune.mjs（自動調整）で決定。npm run sim -- weapons で確認できる（CPU同士 49〜51%）
-  sword:  { dmg: 9.3, reach: 1.75, wind: .12, active: .10, recover: .22, knock: 7,   move: 1.02, style: 'slash' },
-  hammer: { dmg: 20.8,  reach: 1.6,  wind: .34, active: .10, recover: .40, knock: 13.4, move: 0.8, style: 'slash', armor: true },
-  axe:    { dmg: 12.9,  reach: 1.65, wind: .22, active: .10, recover: .30, knock: 9.9,  move: 0.93, style: 'slash', armor: true },
-  spear:  { dmg: 9.8, reach: 2.45, wind: .15, active: .10, recover: .30, knock: 8.8,  move: 1.01, style: 'thrust' , light: true },
-  orb:    { dmg: 15.2,  reach: 0,    wind: .15, active: .05, recover: .33, knock: 2.5,  move: 0.82, style: 'cast' , light: true },
-  fist:   { dmg: 11.7,   reach: 1.3,  wind: .06, active: .08, recover: .12, knock: 4.1,  move: 0.95, style: 'thrust' , light: true },
+  sword:  { dmg: 9.7, reach: 1.75, wind: .12, active: .10, recover: .22, knock: 7,   move: 1.01, style: 'slash' },
+  hammer: { dmg: 19.6,  reach: 1.6,  wind: .34, active: .10, recover: .40, knock: 13.4, move: 0.82, style: 'slash', armor: true },
+  axe:    { dmg: 12,  reach: 1.65, wind: .22, active: .10, recover: .30, knock: 9.9,  move: 0.95, style: 'slash', armor: true },
+  spear:  { dmg: 9.2, reach: 2.45, wind: .15, active: .10, recover: .30, knock: 8.8,  move: 1.03, style: 'thrust' , light: true },
+  orb:    { dmg: 15.8,  reach: 0,    wind: .15, active: .05, recover: .33, knock: 2.5,  move: 0.82, style: 'cast' , light: true },
+  fist:   { dmg: 11.5,   reach: 1.3,  wind: .06, active: .08, recover: .12, knock: 4.1,  move: 0.96, style: 'thrust' , light: true },
+  // 素手（2026-10-10）：武器なしでパンチ。リーチは一番短く、そのかわり足が一番速い（move は威力と連動させず固定）
+  hand:   { dmg: 10.4,     reach: 1.15, wind: .05, active: .07, recover: .11, knock: 3.6,  move: 1.1,  style: 'thrust' , light: true },
 };
 const ICONS = {
   element: { none: '⚪', fire: '🔥', ice: '❄️', thunder: '⚡', poison: '☠️', wind: '🌪️' },
@@ -562,15 +618,15 @@ function applyBoost(f, k) {
 // 体の大きさ：強さではなく「性格」が変わる。s＝見た目と当たり判定、pow＝攻撃力、spd＝足、jump＝ジャンプ、wt＝ふっとびにくさ、swing＝振りの時間（小さいほど速い）。リーチは全員同じ
 //   シミュレーターで 大53%・中50%・小47% になるよう手で調整（2026-10-09）。swing は 0.965〜0.975 の間に崖がある（1コマ差で攻撃後の有利が入れ替わる）ので近づけない
 const SIZE = {
-  S: { s: 0.85, pow: 0.96, spd: 1.08, jump: 1.05, wt: 0.94, swing: 1 },
+  S: { s: 0.85, pow: 0.96, spd: 1.08, jump: 1.05, wt: 0.94, swing: 0.994 },
   M: { s: 1, pow: 1, spd: 1, jump: 1, wt: 1, swing: 1 },
-  L: { s: 1.2, pow: 1.08, spd: 0.92, jump: 0.95, wt: 1.08, swing: 1.002 },
+  L: { s: 1.2, pow: 1.08, spd: 0.92, jump: 0.95, wt: 1.08, swing: 0.985 },
 };
 const sizeOf = b => (SIZE[b.bsize] || SIZE.M).s;
 const BLINK_STUN = 0.25;   // ワープされた相手がひるむ秒数
-const SKILL_COST = { dash: 37, shot: 25, shield: 54, heal: 34, quake: 35, blink: 22 };
+const SKILL_COST = { dash: 42, shot: 20, shield: 71, heal: 41, quake: 26, blink: 19 };
 // 属性のおまけ効果（どれも「無属性のダメージ+15%」と同じくらいの価値になるよう CPU 総当たりで調整）
-const ELEM_FX = { burn: 2, burnDps: 1.71, poison: 5, poisonDps: 1.416, slow: 2.0, stun: 0.164, noneBonus: 1.185, windKnock: 1.325 };
+const ELEM_FX = { burn: 2, burnDps: 1.607, poison: 5, poisonDps: 1.266, slow: 2.572, stun: 0.16, noneBonus: 1.168, windKnock: 1.352 };
 
 const NAME_A = ['ゴン','ピコ','ザン','モチ','ガル','ポン','キラ','ドド','メカ','ニャ','ボル','ルル','ジン','タコ','ベア','ズン','プリ','ギガ','チョコ','バク'];
 const NAME_B = ['','丸','ン','X','太郎','マン','ゴン','すけ','キング','ちゃん','ZERO','ボーイ','ドン'];
@@ -708,7 +764,7 @@ function buildWeapon(b) {
   const tip = new THREE.Object3D();
   const ec = ELEM_COLOR[b.element];
   const headM = mat(b.wColor, { metalness: 0.55, roughness: 0.3, emissive: ec, emissiveIntensity: b.element === 'none' ? 0 : 0.3 });
-  const gripLen = b.wHead === 'fist' ? 0 : b.gripLen;
+  const gripLen = b.wHead === 'fist' || b.wHead === 'hand' ? 0 : b.gripLen;
   if (gripLen) {
     const grip = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, gripLen, 10), mat(0x5a3b24));
     grip.position.y = gripLen / 2 - 0.15; g.add(grip);
@@ -719,7 +775,7 @@ function buildWeapon(b) {
   const hd = new THREE.Group(); hd.position.y = hy; outer.add(hd);
   {
     const L = b.bladeLen, W = b.bladeW, k = (L + W) / 2;
-    const sc = { sword: [W, L, W], spear: [W, L, W], hammer: [L, W, W], axe: [W, L, L], orb: [k, k, k], fist: [k, k, k] }[b.wHead];
+    const sc = { sword: [W, L, W], spear: [W, L, W], hammer: [L, W, W], axe: [W, L, L], orb: [k, k, k], fist: [k, k, k], hand: [1, 1, 1] }[b.wHead];
     hd.scale.set(...sc);
   }
   return finishWeapon(b, outer, hd, tip, headM, ec, gripLen);
@@ -762,6 +818,11 @@ function finishWeapon(b, outer, g, tip, headM, ec, gripLen) {
     case 'fist': {
       const f = new THREE.Mesh(new THREE.SphereGeometry(0.27, 18, 14), headM); f.scale.set(1, 0.9, 1.15); f.position.y = 0.23; g.add(f);
       tip.position.y = 0.23; break;
+    }
+    case 'hand': {   // 素手：小さめのこぶし（アクセントの色。属性があればうっすら光る）
+      const m = mat(b.accent, { emissive: ec, emissiveIntensity: b.element === 'none' ? 0 : 0.35 });
+      const f = new THREE.Mesh(new THREE.SphereGeometry(0.17, 16, 12), m); f.scale.set(1, 0.85, 1.1); f.position.y = 0.12; g.add(f);
+      tip.position.y = 0.12; break;
     }
   }
   g.add(tip);
@@ -875,7 +936,7 @@ function finishCharacter(b, root, inner, accM, info, parts) {
   armPivot.position.set(-(halfW + 0.14), bodyY, paper ? 0.18 : 0.05);
   armPivot.userData.base = armPivot.position.clone();
   torso.add(armPivot);
-  if (b.wHead !== 'fist') { const hand = new THREE.Mesh(new THREE.SphereGeometry(0.13, 12, 10), accM); armPivot.add(hand); }
+  if (b.wHead !== 'fist' && b.wHead !== 'hand') { const hand = new THREE.Mesh(new THREE.SphereGeometry(0.13, 12, 10), accM); armPivot.add(hand); }
   const weapon = buildWeapon(b);
   armPivot.add(weapon.group);
   if (!paper) {
@@ -990,6 +1051,7 @@ addEventListener('resize', () => {
   camera.updateProjectionMatrix();
   if (mode === 'create') setCreatorView();
   if (mode === 'battle') buildTouch(touchPlayers);
+  if (!$('btnEdit').hidden) openBtnEditor();   // 編集中に回したら、その向きの配置に切り替える
 });
 
 /* =========================================================
@@ -1033,6 +1095,7 @@ function sfx(kind) {
       case 'select': tone(660, 990, 0.06, 'square', 0.05); break;
       case 'shatter': noise(0.6, 0.45, 2500); noise(0.25, 0.3, 300); tone(2400, 500, 0.5, 'triangle', 0.08); break;
       case 'go': tone(523, 1046, 0.3, 'square', 0.08); break;
+      case 'star': tone(1568, 2093, 0.12, 'triangle', 0.1); tone(2637, 3136, 0.35, 'sine', 0.08); break;   // キラーン
     }
   } catch { /* 音が出なくてもゲームは続行 */ }
 }
@@ -1077,7 +1140,7 @@ function readPad(i) {
 // iPhone の長押しルーペ・コピーメニュー・ダブルタップ拡大を止める（入力欄は除く）
 for (const ev of ['touchstart', 'touchmove']) {
   document.addEventListener(ev, e => {
-    if (mode === 'battle' && !e.target.closest('input, textarea, button.big-btn, #pauseBtn, #pause, #result, #tut')) e.preventDefault();
+    if (mode === 'battle' && !e.target.closest('input, textarea, button.big-btn, #pauseBtn, #pause, #result, #tut, #btnEdit')) e.preventDefault();
   }, { passive: false });
 }
 document.addEventListener('contextmenu', e => { if (!e.target.closest('input, textarea')) e.preventDefault(); });
@@ -1085,8 +1148,83 @@ document.addEventListener('dblclick', e => e.preventDefault());
 
 const touchIn = [0, 1].map(() => ({ mx: 0, mz: 0, atk: false, skl: false, jmp: false, grd: false }));
 let touchPlayers = [];
+// ===== ボタンの配置（設定）：縦画面・横画面で別々に保存。位置はボタンの中心を「操作エリアの幅・高さに対する割合」で持つ =====
+const LS_BTN = 'battlephase_btnlayout_v1';
+const BTN_BASE = { atk: 84, skl: 62, jmp: 62, grd: 58 };          // ふつうの大きさ（px）
+const BTN_FONT = { atk: 18, skl: 15, jmp: 12, grd: 12 };
+const BTN_HTML = '<button class="tb atk" data-b="atk">攻撃</button><button class="tb skl" data-b="skl">必殺</button><button class="tb jmp" data-b="jmp">ジャンプ</button><button class="tb grd" data-b="grd">ガード</button>';
+const orientKey = () => innerWidth > innerHeight ? 'landscape' : 'portrait';
+function loadBtnLayout() { try { return JSON.parse(localStorage.getItem(LS_BTN)) || {}; } catch { return {}; } }
+function saveBtnLayout(all) { try { localStorage.setItem(LS_BTN, JSON.stringify(all)); } catch { /* 保存できない環境 */ } }
+function applyBtnLayout(pad, L = loadBtnLayout()[orientKey()]) {
+  if (!L) return;   // 保存がなければ、いつもの配置（CSS）のまま
+  const box = pad.querySelector('.tbtns');
+  box.style.cssText = 'top:0;left:0;right:0;bottom:0;width:auto;height:auto;';
+  for (const b of box.querySelectorAll('.tb')) {
+    const k = b.dataset.b, p = L[k]; if (!p) continue;
+    const sc = p.s ?? L.scale ?? 1;   // ボタンごとの大きさ（古い保存は全体の大きさ）
+    const sz = BTN_BASE[k] * sc;
+    // 割合で置く（一時停止中で画面に出ていないときや、画面の大きさが変わっても正しい位置になる）
+    Object.assign(b.style, { width: sz + 'px', height: sz + 'px', left: `calc(${(p.x * 100).toFixed(2)}% - ${sz / 2}px)`, top: `calc(${(p.y * 100).toFixed(2)}% - ${sz / 2}px)`, right: 'auto', bottom: 'auto',
+                             fontSize: Math.round(BTN_FONT[k] * Math.min(1.2, sc)) + 'px' });
+  }
+}
+// 配置を変える画面。onClose は閉じたあとに呼ぶ（試合中なら操作ボタンを作り直す）
+let beOnClose = null, beState = null;
+function openBtnEditor(onClose) {
+  beOnClose = onClose ?? beOnClose;
+  const ed = $('btnEdit'), pad = ed.querySelector('.be-pad'), key = orientKey();
+  ed.hidden = false;
+  $('beTitle').textContent = `ボタンの配置（${key === 'portrait' ? '縦画面' : '横画面'}）`;
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+  const render = L => {
+    pad.innerHTML = `<p class="be-hint">ボタンを指で動かしてね。縦と横は別々に保存されます（左のスティックは指を置いた所に出ます）</p><div class="stick idle"><i></i></div><div class="tbtns">${BTN_HTML}</div>`;
+    const stick = pad.querySelector('.stick'); stick.style.left = '90px'; stick.style.top = (pad.clientHeight - 100) + 'px';
+    if (L) applyBtnLayout(pad, L);
+    // 今の位置を読み取って、編集用の値にする（保存がなければいつもの配置から）
+    const pr = pad.getBoundingClientRect();
+    beState = {};
+    for (const b of pad.querySelectorAll('.tb')) {
+      const r = b.getBoundingClientRect(), k = b.dataset.b;
+      beState[k] = { x: (r.left + r.width / 2 - pr.left) / pr.width, y: (r.top + r.height / 2 - pr.top) / pr.height, s: L?.[k]?.s ?? L?.scale ?? 1 };
+    }
+    applyBtnLayout(pad, beState);
+    selectBtn('atk');
+    for (const b of pad.querySelectorAll('.tb')) {
+      b.onpointerdown = e => {
+        e.preventDefault(); try { b.setPointerCapture(e.pointerId); } catch { /* 取れなくても動かせる */ }
+        b.classList.add('on'); selectBtn(b.dataset.b);   // さわったボタンの大きさをスライダーで変えられる
+        b.onpointermove = ev => {
+          const r = pad.getBoundingClientRect();
+          beState[b.dataset.b] = { x: clamp((ev.clientX - r.left) / r.width, 0.03, 0.97), y: clamp((ev.clientY - r.top) / r.height, 0.04, 0.96) };
+          applyBtnLayout(pad, beState);
+        };
+        b.onpointerup = b.onpointercancel = () => { b.onpointermove = null; b.classList.remove('on'); };
+      };
+    }
+  };
+  const NAMES = { atk: '攻撃', skl: '必殺', jmp: 'ジャンプ', grd: 'ガード' };
+  let sel = 'atk';
+  function selectBtn(k) {
+    sel = k;
+    pad.querySelectorAll('.tb').forEach(b => b.classList.toggle('sel', b.dataset.b === k));
+    $('beSizeLb').textContent = `大きさ（${NAMES[k]}）`;
+    $('beSize').value = beState[k].s;
+  }
+  render(loadBtnLayout()[key]);
+  $('beSize').oninput = e => { beState[sel].s = +e.target.value; applyBtnLayout(pad, beState); };
+  $('beFlip').onclick = () => { for (const k of Object.keys(BTN_BASE)) beState[k].x = 1 - beState[k].x; applyBtnLayout(pad, beState); sfx('select'); };
+  $('beReset').onclick = () => { render(null); sfx('select'); };
+  const close = () => { ed.hidden = true; const f = beOnClose; beOnClose = null; f?.(); };
+  $('beCancel').onclick = close;
+  $('beSave').onclick = () => {
+    const all = loadBtnLayout(); all[key] = beState; saveBtnLayout(all);
+    toast(`${key === 'portrait' ? '縦画面' : '横画面'}のボタン配置を保存したよ`); sfx('select'); close();
+  };
+}
+let touchOrient = null;
 function buildTouch(players) {
-  touchPlayers = players;
+  touchPlayers = players; touchOrient = orientKey();
   const layer = document.getElementById('touch');
   layer.innerHTML = '';
   touchIn.forEach(t => Object.assign(t, { mx: 0, mz: 0, atk: false, skl: false, jmp: false, grd: false }));
@@ -1099,13 +1237,12 @@ function buildTouch(players) {
     pad.style.width = two ? '50%' : '100%';
     pad.innerHTML = `${two ? `<span class="tlabel badge ${pi ? 'p2' : ''}">${pi + 1}P</span>` : ''}
       <div class="stick idle"><i></i></div>
-      <div class="tbtns"><button class="tb atk" data-b="atk">攻撃</button><button class="tb skl" data-b="skl">必殺</button><button class="tb jmp" data-b="jmp">ジャンプ</button><button class="tb grd" data-b="grd">ガード</button></div>`;
+      <div class="tbtns">${BTN_HTML}</div>`;
     layer.appendChild(pad);
+    if (!two) applyBtnLayout(pad);   // 設定で変えた配置（1人で操作するときだけ）
     const stick = pad.querySelector('.stick'), knob = stick.querySelector('i');
-    const home = () => {
-      const w = pad.clientWidth, h = pad.clientHeight;
-      const x = two && n === 1 ? w - 90 : 90;
-      stick.style.left = x + 'px'; stick.style.top = (h - 100) + 'px';
+    const home = () => {   // 割合で置く（画面に出ていないときに作り直しても位置がずれない）
+      stick.style.left = two && n === 1 ? 'calc(100% - 90px)' : '90px'; stick.style.top = 'calc(100% - 100px)';
       knob.style.transform = ''; stick.classList.add('idle');
     };
     home();
@@ -1148,6 +1285,7 @@ function buildTouch(players) {
 }
 function updateTouchCd() {
   if (!IS_TOUCH) return;
+  if (touchOrient !== orientKey()) buildTouch(touchPlayers);   // 画面を回したら、その向きのボタン配置に作り直す（resize が来ない端末の念のため）
   document.querySelectorAll('#touch .tpad').forEach((pad, n) => {
     const f = G.fighters[NET.role === 'guest' ? 1 : G.vsCPU ? 0 : n];
     if (!f) return;
@@ -1738,7 +1876,7 @@ class Fighter {
 
     // 腕・武器
     const w = { ...this.st.weapon, ...this.timing() }, ap = m.armPivot, base = ap.userData.base;
-    let rx = w.type === 'fist' ? 1.3 : 0.35, pz = 0, twist = 0, rz = 0;
+    let rx = w.type === 'fist' || w.type === 'hand' ? 1.3 : 0.35, pz = 0, twist = 0, rz = 0;
     const diag = w.type === 'sword';   // 剣は右上から左下への斜め切り
     if (this.state === 'charge') {
       const lv = Math.min(1, this.chargeT / CHARGE.full), sh = lv >= 1 ? Math.sin(t * 60) * 0.04 : 0;
@@ -2146,6 +2284,18 @@ function cpuInput(f, o, dt) {
 const $ = id => document.getElementById(id);
 const announceEl = $('announce');
 let announceTimer = 0;
+// ラウンドを取ったら、取った人の名前と星（必要な本数ぶん）を出し、今回の1つをキラーンと埋める（2本先取以上のときだけ）
+function roundStars(winner, wins, need) {
+  if (netRec()) NET.events.push(['stars', winner, wins, need]);
+  const el = $('roundStars');
+  if (need < 2 || !G.fighters[winner]) { el.hidden = true; return; }
+  const f = G.fighters[winner], color = winner ? 'var(--p2)' : 'var(--p1)';
+  const sparks = Array.from({ length: 8 }, (_, i) => { const a = i / 8 * Math.PI * 2; return `<i class="sp" style="--dx:${Math.round(Math.cos(a) * 46)}px;--dy:${Math.round(Math.sin(a) * 46)}px"></i>`; }).join('');
+  el.innerHTML = `<div class="rs-name" style="color:${color}">${esc(f.b.name)}</div><div class="rs-row">` +
+    Array.from({ length: need }, (_, i) => i < wins - 1 ? '<span class="st on">★</span>' : i === wins - 1 ? `<span class="st on new">★${sparks}</span>` : '<span class="st">☆</span>').join('') + '</div>';
+  el.hidden = false;
+  setTimeout(() => sfx('star'), 600);
+}
 function announce(text, dur = 1.2) {
   if (netRec()) NET.events.push(['ann', text, dur]);
   announceEl.innerHTML = ''; const s = document.createElement('span'); s.textContent = text; announceEl.appendChild(s);
@@ -2236,6 +2386,7 @@ function startBattle() {
   startRound();
 }
 function startRound() {
+  $('roundStars').hidden = true;
   G.fighters[0].reset(-4, Math.PI / 2);
   G.fighters[1].reset(4, -Math.PI / 2);
   for (const p of G.projectiles) scene.remove(p.m);
@@ -2259,8 +2410,10 @@ function updateBattle(dt) {
     if (f.cpu) return cpuInput(f, G.fighters[1 - i], dt);
     return NET.role === 'host' && i === 1 ? netTakeInput() : readInput(i, G.vsCPU);
   });
-  a.update(dt, inputs[0], b);
-  b.update(dt, inputs[1], a);
+  // 同じ瞬間に振ったとき、先に処理した方の攻撃が当たって相手の攻撃が消える。いつも1Pが先だと1Pが有利になるので、毎フレーム順番を入れ替える
+  G.tick = (G.tick || 0) + 1;
+  if (G.tick % 2) { a.update(dt, inputs[0], b); b.update(dt, inputs[1], a); }
+  else { b.update(dt, inputs[1], a); a.update(dt, inputs[0], b); }
 
   // 押し合い
   if (!a.dead && !b.dead) {
@@ -2282,6 +2435,7 @@ function updateBattle(dt) {
       G.wins[1 - loser]++;
       G.phase = 'end'; G.phaseT = 0;
       announce(f.out && !f.dead ? 'RING OUT!' : G.skillKO ? 'ひっさつKO！！' : 'KO！！', 1.8);
+      roundStars(1 - loser, G.wins[1 - loser], G.need);
       if (f.out && !f.dead) sfx('ko');
     }
   } else if (G.phase === 'end' && G.phaseT > 2.4) {
@@ -2340,10 +2494,12 @@ function togglePause() {
     const open = !$('pause').classList.contains('on');
     $('pauseTitle').textContent = open ? '対戦中（止まりません）' : 'ポーズ';
     $('quitBtn').textContent = open ? '対戦をやめる' : 'タイトルへ';
+    $('btnLayoutBtn').hidden = true;
     show(open ? 'pause' : 'hud', true);
     return;
   }
   G.paused = !G.paused;
+  $('btnLayoutBtn').hidden = false;
   show(G.paused ? 'pause' : 'hud', true);
 }
 
@@ -2713,7 +2869,7 @@ function syncPanel() {
   for (const [id, key] of [['gripIn', 'gripLen'], ['bLenIn', 'bladeLen'], ['bWIn', 'bladeW']]) {
     $(id).value = cur[key]; $(id + 'O').textContent = cur[key].toFixed(2);
   }
-  $('gripIn').disabled = cur.wHead === 'fist';
+  $('gripIn').disabled = cur.wHead === 'fist' || cur.wHead === 'hand';
   document.querySelectorAll('#modeTabs [data-mode]').forEach(b => b.classList.toggle('sel', b.dataset.mode === cur.bodyMode));
   $('partsBox').hidden = cur.bodyMode === 'draw';
   $('drawBox').hidden = cur.bodyMode !== 'draw';
@@ -2936,7 +3092,7 @@ function netGuestUpdate(dt) {
   const sn = NET.snap;
   if (sn) {
     NET.snap = null;
-    if (mode === 'battle') { G.phase = sn.ph; G.round = sn.r; G.wins = sn.w; }
+    if (mode === 'battle') { if (sn.ph === 'intro' && G.phase !== 'intro') $('roundStars').hidden = true; G.phase = sn.ph; G.round = sn.r; G.wins = sn.w; }   // 次のラウンドが始まったら星を消す
     G.shake = Math.max(G.shake, sn.k || 0);
     sn.f.forEach((a, i) => {
       const f = G.fighters[i]; if (!f) return;
@@ -2968,6 +3124,7 @@ function netGuestUpdate(dt) {
       else if (e[0] === 'ripple' && G.fighters[e[1]]) guardRipple(G.fighters[e[1]]);
       else if (e[0] === 'dmg') dmgNumber(V(e[1]), e[2], e[3]);
       else if (e[0] === 'ann') announce(e[1], e[2]);
+      else if (e[0] === 'stars') roundStars(e[1], e[2], e[3]);
       else if (e[0] === 'shatter') G.pendingShatter = { x: e[1] * innerWidth, y: e[2] * innerHeight };
       else if (e[0] === 'fxhit') { fxHit(V(e[1]), new THREE.Vector3(e[2][0], 0, e[2][1]), e[3], !!e[4]); if (e[4] && G.fighters.some(f => f.dead)) G.slowmo = 0.8; }
       else if (e[0] === 'flash') fxFlash(e[1], e[2]);
@@ -3068,6 +3225,7 @@ function endTutorial() { G.tut = null; $('tut').hidden = true; }
 const endlessLv = () => ENDLESS_LV.filter(n => G.streak >= n).length - 1;
 function showResult(champ) {
   const label = $('winLabel'), sub = $('winSub'), again = $('againBtn');
+  $('roundStars').hidden = true;
   if (!G.watch) track('match_end', { mode: matchMode(), win: champ === (NET.role ? NET.me : 0), rounds: G.wins[0] + G.wins[1],
                                      seconds: Math.round((performance.now() - (G.matchT0 || performance.now())) / 1000), streak: G.endless ? G.streak + (champ === 0 ? 1 : 0) : null });
   if (G.tut && champ === 0) track('tutorial_complete');
@@ -3171,6 +3329,16 @@ $('tutSkip').onclick = () => {
 $('remakeBtn').onclick = () => { G.watch = false; cleanupBattle(); openCreator(0); };
 $('toTitleBtn').onclick = () => { G.watch = false; G.endless = false; endTutorial(); netClose(); goTitle(); };
 $('resumeBtn').onclick = togglePause;
+$('btnLayoutBtn').onclick = () => { sfx('select'); openBtnEditor(() => buildTouch(touchPlayers)); };
+// タイトル右上の設定
+$('settingsBtn').onclick = () => {
+  sfx('select');
+  $('setBtnLayout').disabled = !IS_TOUCH;
+  $('setNote').textContent = IS_TOUCH ? '縦画面と横画面で、別々に保存できます' : 'ボタンの配置は、スマホ・タブレットで変えられます';
+  show('settings');
+};
+$('setBtnLayout').onclick = () => { sfx('select'); openBtnEditor(); };
+$('setBack').onclick = () => { sfx('select'); show('title'); };
 $('pauseBtn').onclick = () => { if (mode === 'battle' && !G.paused) togglePause(); };
 $('quitBtn').onclick = () => { G.paused = false; G.watch = false; G.endless = false; endTutorial(); netClose(); goTitle(); };
 
@@ -3185,6 +3353,7 @@ function cleanupBattle() {
   for (const d of dmgNums) d.el.remove();
   dmgNums.length = 0;
   announceEl.innerHTML = '';
+  $('roundStars').hidden = true;
 }
 function updateTitleBest() {
   const rec = loadNum(LS_STREAK, 0);
