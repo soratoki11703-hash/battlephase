@@ -1966,6 +1966,9 @@ class Fighter {
 
   animate(dt) {
     const m = this.m, S = this.status;
+    // 3人以上の試合：倒れた人は少ししたらステージから消す（ラウンドが変わると reset で戻る）
+    this.downT = this.dead || this.out ? (this.downT || 0) + dt : 0;
+    m.root.visible = !(G.fighters.length > 2 && this.downT > 1.2 && G.fighters.includes(this));
     m.root.position.copy(this.pos);
     m.root.rotation.y = this.yaw;
     const hs = Math.hypot(this.vel.x, this.vel.z);
@@ -2068,14 +2071,25 @@ class Fighter {
 
     if (this.ring) {
       const r = Math.hypot(this.pos.x, this.pos.z);
-      this.ring.visible = r < ARENA_R && this.pos.y > -0.5 && !this.dead;
+      this.ring.visible = r < ARENA_R && this.pos.y > -0.5 && !this.dead && m.root.visible;
       this.ring.position.set(this.pos.x, 0.03, this.pos.z);
       const sc = 1 / (1 + Math.max(0, this.pos.y) * 0.15); this.ring.scale.setScalar(sc);
     }
   }
 }
 
-function applyHit(att, tgt, dmg, knock, dir, elem, lift = 0, bySkill = false, breaker = false, chainStun = 0, noFx = false) {
+// 3人以上の試合：当たるたびに画面全体を止めると、止まってばかりでカクついて見える（4人だと1対1の約1.7倍止まっていた）
+//   CPU どうしの当たりでは止めない。人が関わる当たりも止める時間を短く。KOのスローはラウンドが決まるときだけ
+function applyHit(att, tgt, ...rest) {
+  if (G.fighters.length <= 2) return applyHitCore(att, tgt, ...rest);
+  const hs = G.hitstop, sm = G.slowmo || 0;
+  const res = applyHitCore(att, tgt, ...rest);
+  const human = (att && !att.cpu) || !tgt.cpu;
+  G.hitstop = human ? Math.max(hs, Math.min(G.hitstop, 0.06)) : hs;
+  if (G.slowmo > sm && new Set(G.fighters.filter(f => !f.dead && !f.out).map(f => f.team)).size > 1) G.slowmo = sm;
+  return res;
+}
+function applyHitCore(att, tgt, dmg, knock, dir, elem, lift = 0, bySkill = false, breaker = false, chainStun = 0, noFx = false) {
   if (tgt.dead || G.phase !== 'fight') return;
   const hitPos = tgt.center();
   if (tgt.invuln > 0) {   // 回避ステップの無敵中
@@ -2612,7 +2626,7 @@ function updateBattle(dt) {
 
 const LAND_ZOOM = 0.6;   // 横画面のカメラの近さ（小さいほど寄る）
 function updateCamera(dt, frozen = false) {
-  const live = G.fighters.filter(f => f.pos.y > -6);
+  const live = G.fighters.filter(f => f.pos.y > -6 && f.m.root.visible);   // 消えた人（3人以上で倒れた人）は追わない
   const list = live.length ? live : G.fighters;
   const mid = new THREE.Vector3();
   list.forEach(f => mid.add(f.pos)); mid.divideScalar(list.length);
