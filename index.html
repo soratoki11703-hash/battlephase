@@ -377,7 +377,8 @@
     .ttop { margin-top: 34px; }   /* ロゴを画面のふちから少し離す */
     .ttop .logo { white-space: nowrap; }
     .ttop .sub { margin: 8px 0 0; font-size: 14px; }
-    .tmenu { width: min(440px, 70vw); gap: 6px; }
+    .tmenu { width: min(640px, 92vw); gap: 6px; display: grid; grid-template-columns: 1fr 1fr; }   /* ボタンは2列に（縦に並べるとはみ出す） */
+    .tmenu .cpu-lv, .tmenu .tgrid { grid-column: 1 / -1; justify-self: center; }
     .tile { padding: 6px 4px; } .tile b { font-size: 20px; }
     .cpu-lv { padding: 4px 8px; font-size: 12px; } .cpu-lv .opt { padding: 4px 9px; font-size: 12px; }
     .logo { font-size: 48px; }
@@ -404,7 +405,7 @@
 <div id="title" class="screen on">
   <div class="ttop">
     <h1 class="logo">バトルフェーズ</h1>
-    <p class="sub">つくって、すぐ、なぐりあえ。<button class="tgear" id="settingsBtn" aria-label="設定">⚙️</button></p>
+    <p class="sub">つくって、すぐ、なぐりあえ。</p>
   </div>
   <div class="tmenu">
     <!-- チュートリアル・おまかせ・ふたりでは一旦外した（2026-10-11。処理は残してある）。オンラインは 2026-10-12 に戻した -->
@@ -2683,7 +2684,7 @@ function updateTitle(dt) {
   }
   const fit = Math.max(1, 1.3 / camera.aspect);
   camera.position.set(Math.sin(titleT * 0.15) * 9 * fit, 4.5 * fit, Math.cos(titleT * 0.15) * 9 * fit);
-  camera.lookAt(0, 1.2, 0);
+  camera.lookAt(0, -0.6, 0);   // ステージを画面の少し上に（下のメニューに隠れないように）
 }
 
 /* =========================================================
@@ -3730,13 +3731,7 @@ $('remakeBtn').onclick = () => afterMatchAd(() => { G.watch = false; cleanupBatt
 $('toTitleBtn').onclick = () => afterMatchAd(() => { G.watch = false; G.endless = false; endTutorial(); netClose(); goTitle(); });
 $('resumeBtn').onclick = togglePause;
 $('btnLayoutBtn').onclick = () => { sfx('select'); openBtnEditor(() => buildTouch(touchPlayers)); };
-// タイトル右上の設定
-$('settingsBtn').onclick = () => {
-  sfx('select');
-  $('setBtnLayout').disabled = !IS_TOUCH;
-  $('setNote').textContent = IS_TOUCH ? '縦画面と横画面で、別々に保存できます' : 'ボタンの配置は、スマホ・タブレットで変えられます';
-  show('settings');
-};
+// タイトルの設定ボタンは 2026-10-12 に外した（ボタンの配置はポーズ画面から変えられる）。設定画面そのものは残してある
 $('setBtnLayout').onclick = () => { sfx('select'); openBtnEditor(); };
 $('setBack').onclick = () => { sfx('select'); show('title'); };
 $('pauseBtn').onclick = () => { if (mode === 'battle' && !G.paused) togglePause(); };
