@@ -35,7 +35,7 @@
   /* 上にロゴ、真ん中は3Dのキャラが見えるように空け、下にメニューをまとめる */
   #title { flex-direction: column; align-items: center; justify-content: space-between; gap: 12px; pointer-events: none; overflow-y: auto;
     padding: calc(28px + env(safe-area-inset-top, 0px)) 16px calc(20px + env(safe-area-inset-bottom, 0px)); }
-  .ttop { text-align: center; }
+  .ttop { text-align: center; margin-top: 7vh; }   /* ロゴは画面のふちから少し下げる */
   .ttop .sub { margin: 18px 0 0; }
   .tmenu { display: flex; flex-direction: column; align-items: center; gap: 10px; width: min(380px, 100%); }
   .tmain { width: 100%; min-width: 0; }
