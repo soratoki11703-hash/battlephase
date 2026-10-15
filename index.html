@@ -41,6 +41,12 @@
   .tmain { width: 100%; min-width: 0; }
   .big-btn small { display: block; font-family: system-ui, sans-serif; font-weight: 800; font-size: 12px; opacity: .85; margin-top: 2px; }
   .big-btn small:empty { display: none; }
+  /* 広告を見て復活：結果画面でいちばん大きく、ゆっくり脈打たせる */
+  #reviveBtn { font-size: 28px; padding: 20px 36px; min-width: 330px; border-radius: 22px; background: linear-gradient(180deg, #a77bff, #7c3aed);
+    box-shadow: 0 7px 0 rgba(0,0,0,.35), 0 0 28px rgba(167,123,255,.7); animation: revivePulse 1.2s ease-in-out infinite; }
+  #reviveBtn small { font-size: 14px; margin-top: 4px; }
+  @keyframes revivePulse { 50% { transform: scale(1.05); box-shadow: 0 7px 0 rgba(0,0,0,.35), 0 0 44px rgba(167,123,255,.95); } }
+  @media (max-height: 500px) { #reviveBtn { font-size: 20px; padding: 10px 26px; } #reviveBtn small { font-size: 11px; } }
   #fakeAd { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; background: #000; color: #fff; font-size: 26px; font-weight: 800; }
   #fakeAd[hidden] { display: none; }
   .big-btn.tsub { font-size: 17px; padding: 11px 20px; }
@@ -1120,7 +1126,7 @@ addEventListener('resize', () => {
    サウンド（WebAudioで簡単な効果音）
    ========================================================= */
 let AC = null;
-const MUTE = true;   // true で効果音をすべて止める（2026-10-10 ユーザーの希望で一時的にミュート。戻すときは false）
+const MUTE = false;   // true で効果音をすべて止める（2026-10-10 に一時ミュート → 2026-10-15 ユーザーの希望で音を戻した）
 function sfx(kind) {
   if (netRec()) NET.events.push(['sfx', kind]);
   if (MUTE) return;
@@ -3544,7 +3550,7 @@ const ADS = {
   plugin: window.Capacitor?.isNativePlatform?.() ? window.Capacitor.Plugins?.AdMob : null,
   fake: location.search.includes('adtest'),
   test: false,   // true にすると Google のテスト用広告（自分の端末で確かめるとき。本番の広告を自分で押すと止められることがある）
-  real: { inter: 'ca-app-pub-2523846533754286/5769932423', reward: 'ca-app-pub-2523846533754286/6859652816' },   // AdMob「バトルフェーズ」の 試合後／復活
+  real: { inter: 'ca-app-pub-9851397835873240/3290735011', reward: 'ca-app-pub-9851397835873240/2048796373' },   // AdMob（soratoki11703@gmail.com）「バトルフェーズ」の 試合後／復活
   testIds: { inter: 'ca-app-pub-3940256099942544/4411468910', reward: 'ca-app-pub-3940256099942544/1712485313' },
   every: 1,   // 何試合ごとに試合後の広告を出すか（多すぎると感じたら 2 などに）
   games: 0, ready: { inter: false, reward: false }, rewarded: false, done: null,
