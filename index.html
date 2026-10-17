@@ -307,6 +307,16 @@
     background: rgba(255,255,255,.08); pointer-events: none; }
   .stick i { position: absolute; left: 50%; top: 50%; width: 54px; height: 54px; margin: -27px 0 0 -27px; border-radius: 50%; background: rgba(255,255,255,.75); }
   .stick.idle { opacity: .45; }
+  /* iPad など大きいタッチ画面：メニューと操作ボタンを大きく（スマホと同じ大きさだと小さくて押しにくい） */
+  @media (min-width: 700px) and (min-height: 700px) {
+    body.touch .tmenu { width: min(540px, 88vw); gap: 14px; }
+    body.touch .tmenu .big-btn { font-size: 27px; padding: 20px 34px; }
+    body.touch .tmenu .big-btn small { font-size: 15px; }
+    body.touch .cpu-lv { font-size: 16px; padding: 6px 8px 6px 16px; } body.touch .cpu-lv .lb { font-size: 15px; } body.touch .cpu-lv .opt { font-size: 16px; padding: 8px 16px; }
+    body.touch .tbtns:not([style]) { transform: scale(1.4); transform-origin: bottom right; }
+    body.touch .tpad.mirror .tbtns:not([style]) { transform-origin: bottom left; }
+    body.touch .stick { transform: scale(1.4); }
+  }
   .tlabel { position: absolute; top: 6px; left: 50%; transform: translateX(-50%); font-weight: 800; font-size: 13px; padding: 2px 10px; border-radius: 10px; }
   /* 設定・ボタン配置の編集 */
   .tgear { display: inline-block; vertical-align: -14px; margin-left: 6px; width: 36px; height: 36px; border-radius: 50%;   /* サブタイトルの右横、少し下 */
@@ -417,7 +427,7 @@
     <!-- チュートリアル・おまかせ・ふたりでは一旦外した（2026-10-11。処理は残してある）。オンラインは 2026-10-12 に戻した -->
     <button class="big-btn gold tmain" data-go="endless">🏆 勝ち抜き<small id="endlessRec"></small></button>
     <button class="big-btn blue tmain" data-go="cpu">⚔️ CPUと対戦</button>
-    <button class="big-btn purple tmain tsub" data-go="online">🌐 オンライン対戦<small>部屋コードで友達と</small></button>
+    <button class="big-btn purple tmain tsub" data-go="online" id="onlineGo">🌐 オンライン対戦<small>部屋コードで友達と</small></button>
     <button class="big-btn ghost tmain tsub" data-go="best" id="bestGo" hidden>⭐ マイキャラで対戦<small id="bestName"></small></button>
     <div class="cpu-lv" id="ruleSel"></div>
     <div class="cpu-lv" id="cpuLv"></div>
@@ -638,6 +648,9 @@ const LS_TUT = 'battlephase_tutorial_v1';
 const ANALYTICS = { key: 'phc_D5Rw35rXa8vm8tDk2gh3kBBdN8wrGEZbwGpcWMMToV7i', host: 'https://us.i.posthog.com' };   // PostHog（US・プロジェクト 656616）の公開用キー
 //   動作確認は ?antest を付けると platform=test で送る（本番の数字と分けて見られる）
 const PLATFORM = window.Capacitor?.isNativePlatform?.() ? 'ios' : /github\.io$/.test(location.hostname) ? 'web' : /antest/.test(location.search) ? 'test' : 'dev';
+// アプリ版でオンライン対戦を出すか（2026-10-17 ユーザー：App Store の 1.0 では隠す。知らない人の手書きキャラ・名前が見えるので、通報・ブロックを付けてから戻す）
+const ONLINE_IN_APP = false;
+if (PLATFORM === 'ios' && !ONLINE_IN_APP) document.getElementById('onlineGo').hidden = true;
 const anaQueue = [];
 function track(event, props = {}) {
   try {
@@ -1126,7 +1139,9 @@ addEventListener('resize', () => {
    サウンド（WebAudioで簡単な効果音）
    ========================================================= */
 let AC = null;
-const MUTE = false;   // true で効果音をすべて止める（2026-10-10 に一時ミュート → 2026-10-15 ユーザーの希望で音を戻した）
+// true で効果音をすべて止める（2026-10-10 に一時ミュート → 2026-10-15 音を戻した）
+//   このMacで動作確認するとき（localhost で開いたとき・?mute を付けたとき・iOS シミュレーター用に UA に BPMute を付けてビルドしたとき）だけ鳴らさない（2026-10-15 ユーザーの希望）。アプリ・TestFlight・GitHub Pages は鳴る
+const MUTE = PLATFORM === 'dev' || /[?&]mute\b/.test(location.search) || navigator.userAgent.includes('BPMute');
 function sfx(kind) {
   if (netRec()) NET.events.push(['sfx', kind]);
   if (MUTE) return;
@@ -3680,7 +3695,7 @@ document.querySelectorAll('[data-go]').forEach(b => b.onclick = () => {
   G.endless = go === 'endless'; G.streak = 0; G.revived = false;
   G.rule = go === 'cpu' || go === 'best' ? G.cpuRule : 'duel';
   if (go === 'tutorial') { startTutorial(); return; }
-  if (go === 'online') { openOnline(); return; }
+  if (go === 'online') { if (PLATFORM === 'ios' && !ONLINE_IN_APP) return; openOnline(); return; }
   if (go === 'endless') { G.vsCPU = true; openCreator(0); return; }
   if (go === 'best') {
     const best = loadBest(); if (!best) return;
