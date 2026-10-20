@@ -46,6 +46,7 @@
     box-shadow: 0 7px 0 rgba(0,0,0,.35), 0 0 28px rgba(167,123,255,.7); animation: revivePulse 1.2s ease-in-out infinite; }
   #reviveBtn small { font-size: 14px; margin-top: 4px; }
   @keyframes revivePulse { 50% { transform: scale(1.05); box-shadow: 0 7px 0 rgba(0,0,0,.35), 0 0 44px rgba(167,123,255,.95); } }
+  #appBtn small { display: block; font-size: 13px; opacity: .9; margin-top: 2px; }
   @media (max-height: 500px) { #reviveBtn { font-size: 20px; padding: 10px 26px; } #reviveBtn small { font-size: 11px; } }
   #fakeAd { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; background: #000; color: #fff; font-size: 26px; font-weight: 800; }
   #fakeAd[hidden] { display: none; }
@@ -344,6 +345,30 @@
   /* コード入力モーダル */
   #modal { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; background: rgba(10,6,25,.7); padding: 16px; }
   #modal[hidden] { display: none; }
+  /* 通報・ブロック・オンラインのルール */
+  #sheet { position: fixed; inset: 0; z-index: 21; display: grid; place-items: center; background: rgba(10,6,25,.75); padding: 16px; }
+  #sheet[hidden] { display: none; }
+  #sheet .mbox { max-height: calc(100vh - 32px); overflow-y: auto; }
+  #sheet p { margin: 0; font-size: 14px; line-height: 1.6; }
+  #sheet .tool.sel { background: var(--gold); color: #3b2300; }
+  #sheet .tool:disabled { opacity: .5; }
+  #sheet ul { margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.6; }
+  .who { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 12px; background: rgba(255,255,255,.06); border-left: 5px solid; }
+  .who .nm { flex: 1; font-weight: 800; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tool.red { background: #d8434f; }
+  .tool.sel { background: var(--gold); color: #3b2300; }
+  .reasons { display: flex; flex-wrap: wrap; gap: 6px; }
+  /* 連勝ランキング */
+  .rk-list { display: flex; flex-direction: column; gap: 4px; }
+  .rk { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 10px; background: rgba(255,255,255,.06); }
+  .rk.me { background: rgba(255,210,63,.18); outline: 2px solid var(--gold); }
+  .rk .no { width: 30px; text-align: center; font-weight: 900; font-size: 15px; }
+  .rk .nm { flex: 1; font-weight: 800; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rk .n { font-weight: 900; color: var(--gold); white-space: nowrap; }
+  .rk .tool { padding: 4px 8px; font-size: 12px; }
+  #sheet input[type=text] { flex: 1; min-width: 0; border-radius: 10px; border: 2px solid var(--line); background: var(--shade); color: var(--ink); padding: 8px; font-size: 16px; user-select: text; -webkit-user-select: text; }
+  #sheet label { display: flex; gap: 8px; align-items: center; font-size: 14px; }
+  #sheet textarea { width: 100%; height: 64px; resize: none; border-radius: 10px; border: 2px solid var(--line); background: var(--shade); color: var(--ink); padding: 8px; font-size: 14px; user-select: text; -webkit-user-select: text; }
   .mbox { width: min(440px, 100%); background: var(--bg); border: 1px solid var(--line); border-radius: 18px; padding: 18px; display: flex; flex-direction: column; gap: 12px; }
   .mbox b { font-family: "Mochiy Pop One", sans-serif; font-size: 18px; }
   #mText { width: 100%; height: 110px; resize: none; border-radius: 12px; border: 2px solid var(--line); background: var(--shade); color: var(--ink);
@@ -432,6 +457,7 @@
     <div class="cpu-lv" id="ruleSel"></div>
     <div class="cpu-lv" id="cpuLv"></div>
     <div class="tgrid">
+      <button class="tile" id="rankGo"><b>🏅</b>連勝ランキング</button>
       <button class="tile dev-only" data-go="watch"><b>👀</b>観戦</button>
     </div>
   </div>
@@ -469,9 +495,12 @@
   <div class="win-name" id="winName"></div>
   <div class="win-sub" id="winSub"></div>
   <button class="big-btn purple" id="reviveBtn" hidden></button>
+  <button class="big-btn purple" id="appBtn" hidden>📱 アプリで続きを遊ぶ<small>第2階層「氷の神殿」から先はアプリ版で</small></button>
   <button class="big-btn gold" id="againBtn">もう一回！</button>
   <button class="big-btn blue" id="remakeBtn">キャラをつくりなおす</button>
   <button class="big-btn ghost" id="toTitleBtn">タイトルへ</button>
+  <button class="tool" id="modBtn" hidden>🚩 通報・ブロック</button>
+  <button class="tool" id="rankBtn" hidden>🏅 連勝ランキング</button>
 </div>
 
 <div id="online" class="screen">
@@ -495,6 +524,7 @@
   </div>
   <div class="win-sub" id="onStatus">部屋を作るか、友達から聞いた4ケタのコードで部屋に入ってね</div>
   <button class="big-btn ghost" id="onBack">もどる</button>
+  <div class="row"><button class="tool" id="onRulesBtn">📜 オンラインのルール</button><button class="tool" id="onBlocked" hidden></button></div>
 </div>
 
 <div id="pause" class="screen">
@@ -502,6 +532,7 @@
   <button class="big-btn gold" id="resumeBtn">つづける</button>
   <button class="big-btn blue" id="btnLayoutBtn">🎮 ボタンの配置</button>
   <button class="big-btn ghost" id="quitBtn">タイトルへ</button>
+  <button class="tool" id="modBtn2" hidden>🚩 通報・ブロック</button>
 </div>
 
 <div id="settings" class="screen">
@@ -530,6 +561,7 @@
     <div class="row"><button class="tool" id="mCancel">とじる</button><button class="tool" id="mOk">読み込む</button></div>
   </div>
 </div>
+<div id="sheet" hidden><div class="mbox" id="sheetBox"></div></div>
 <div id="tut" hidden><span class="tstep" id="tutStep"></span><span class="ttext" id="tutText"></span><span class="tcount" id="tutCount"></span><button id="tutSkip">スキップ</button></div>
 <div id="toast"></div>
 
@@ -648,8 +680,15 @@ const LS_TUT = 'battlephase_tutorial_v1';
 const ANALYTICS = { key: 'phc_D5Rw35rXa8vm8tDk2gh3kBBdN8wrGEZbwGpcWMMToV7i', host: 'https://us.i.posthog.com' };   // PostHog（US・プロジェクト 656616）の公開用キー
 //   動作確認は ?antest を付けると platform=test で送る（本番の数字と分けて見られる）
 const PLATFORM = window.Capacitor?.isNativePlatform?.() ? 'ios' : /github\.io$/.test(location.hostname) ? 'web' : /antest/.test(location.search) ? 'test' : 'dev';
-// アプリ版でオンライン対戦を出すか（2026-10-17 ユーザー：App Store の 1.0 では隠す。知らない人の手書きキャラ・名前が見えるので、通報・ブロックを付けてから戻す）
-const ONLINE_IN_APP = false;
+// アプリ版でオンライン対戦を出すか（2026-10-17 ユーザー：App Store の 1.0 では隠す。1.1 で名前の伏せ字・通報・ブロックを付けて戻した）
+const ONLINE_IN_APP = false;   // 2026-10-21 ユーザー「オンライン対戦はまだいらん」→ 1.1 もアプリでは隠す（Web 版はそのまま）
+// Web 版（ブラウザ）はお試し：勝ち抜きは第1階層（WEB_STREAK_MAX 連勝）まで、連勝ランキングは見るだけ。続きはアプリへ案内する
+//   開発中は ?web を付けると Web 版と同じ動き
+const IS_WEB = PLATFORM === 'web' || (PLATFORM === 'dev' && /[?&]web\b/.test(location.search));
+const WEB_STREAK_MAX = 10;
+const REVIVE_MAX = 5;   // 勝ち抜きで「広告を見て復活」できる回数（1回の挑戦で。2026-10-21 ユーザー「五回まで」）
+// App Store のページ（1.0 が公開されたら App Store Connect の「Apple ID」の番号で https://apps.apple.com/jp/app/id番号 を入れる）。空のあいだはボタンを出さず文字で案内
+const APP_STORE_URL = '';
 if (PLATFORM === 'ios' && !ONLINE_IN_APP) document.getElementById('onlineGo').hidden = true;
 const anaQueue = [];
 function track(event, props = {}) {
@@ -679,13 +718,43 @@ function initAnalytics() {
 const DRAW_ON = false;
 // オンライン対戦（ルームコード）：部屋を作った側（ホスト）が試合を計算し、入った側（ゲスト）は操作を送って結果を映す
 //   つなぐ仲介は PeerJS の無料サーバー。部屋のコード4ケタ → ID「battlephase-v1-コード」
-const NET = { role: null, me: 0, slot: 0, slots: [], seatOf: {}, phase: null, rx: {}, ws: null, code: null, ping: 0, sendT: 0, held: {}, lastRx: 0, warnT: 0, mute: false, builds: [], again: {}, snap: null, remote: {}, edges: {}, events: [], proj: new Map(), seq: 0 };
+const NET = { role: null, me: 0, slot: 0, slots: [], seatOf: {}, pids: {}, seatPid: {}, rawNames: {}, phase: null, rx: {}, ws: null, code: null, ping: 0, sendT: 0, held: {}, lastRx: 0, warnT: 0, mute: false, builds: [], again: {}, snap: null, remote: {}, edges: {}, events: [], proj: new Map(), seq: 0 };
 const NET_STATES = ['idle', 'attack', 'charge', 'dash', 'dodge'];
 const CPU_BASE_LV = 2;   // レベル指定のないCPU（観戦・シミュレーター）はこの強さ
 // 勝ち抜きモード：何連勝したかで相手のつよさが上がる（この連勝数から）
 const ENDLESS_LV = [0, 3, 6, 10];
 // 勝ち抜きで from 連勝したあとは、1勝ごとにおにが強くなる（おに+1, +2…）。per＝1段あたり、max＝上限
 const ENDLESS_BOOST = { from: 20, dmg: [0.03, 1.6], wt: [0.015, 1.3], spd: [0.008, 1.12], think: 0.05, parry: [0.03, 0.95] };
+// 勝ち抜き：10連勝ごとに次の階層へ（ステージの見た目＋しかけが変わる）。相手もその階層に住んでいそうなキャラになる
+//   floor＝床の色・線・まんなか、rim＝ふちの色と光、rock＝浮かぶ岩の色（HSL）、elem＝相手の属性の選ばれ方、hue＝相手の色あい（範囲）
+//   tone＝相手の体の色の あざやかさ・明るさの範囲 [s0, s1, l0, l1]（なければ ふつう）
+//   foe＝相手の体（敵専用の形）・頭・帽子・目の選ばれ方と、名前の頭（うしろは NAME_B）、special＝その階層の敵だけが使う必殺技（SPECIALS）
+//   amb＝まわりの雰囲気（雪・火の粉・雨と雷・泡・星と惑星。buildAmbient）
+//   しかけ：grip＝床のふんばり（小さいほどすべる）、r＝ステージの半径、bolt＝落雷の間隔（秒）、poison＝端の毒（1秒あたりのダメージ）、grav＝重力
+const STAGES = [
+  { name: '夕焼けの浮島', sky: ['#4b3a8f', '#f59e8b'], fog: 0x9c6fa8, floor: ['#e9e3f5', '#c9bfe0', '#ffd23f'], side: 0x6d5a9e, rim: [0xffd23f, 0xff8a00], rock: [0.72, 0.3, 0.45] },
+  { name: '氷の神殿', note: '床がすべる！', foe: { body: ['crystal'], head: ['none'], hat: ['halo', 'crown', 'none'], eyes: ['sleepy', 'visor', 'normal'], name: ['フロ', 'ユキ', 'コオリ', 'ペン', 'シロ'], special: 'icicle' }, amb: 'snow', sky: ['#1d3b6e', '#bfe8ff'], fog: 0x9cc8e8, floor: ['#eaf7ff', '#a9d8f0', '#7fe3ff'], side: 0x4f86b8, rim: [0x9ff0ff, 0x3fb8ff], rock: [0.55, 0.45, 0.8],
+    grip: 0.16, elem: ['ice', 'ice', 'wind'], hue: [0.5, 0.65] },
+  { name: '溶岩の火山', note: 'ステージがせまい！', foe: { body: ['magma'], head: ['none', 'none', 'ball'], hat: ['horns', 'mohawk'], eyes: ['angry', 'cyclops'], name: ['マグ', 'ボル', 'ヒノ', 'カジ', 'エン'], special: 'meteor' }, amb: 'ember', sky: ['#2a0d0d', '#ff6a2b'], fog: 0x7a2a18, floor: ['#4a3430', '#ff7a2b', '#ffd23f'], side: 0x3b2320, rim: [0xff6a2b, 0xff2a00], rock: [0.02, 0.45, 0.22],
+    r: 7, elem: ['fire', 'fire', 'none'], hue: [0.98, 0.06], tone: [0.25, 0.4, 0.16, 0.26] },
+  { name: '雷雲の塔', note: '落雷に気をつけて！', foe: { body: ['cloud'], head: ['none'], hat: ['antenna', 'mohawk', 'horns'], eyes: ['angry', 'visor'], name: ['ライ', 'ゴロ', 'ビリ', 'ピカ', 'イナ'], special: 'thunder' }, amb: 'rain', sky: ['#14142e', '#5b5fa8'], fog: 0x3a3a6a, floor: ['#3c3f5e', '#ffe94a', '#ffe94a'], side: 0x404070, rim: [0xffe94a, 0xffc400], rock: [0.66, 0.15, 0.35],
+    bolt: 3.2, elem: ['thunder', 'thunder', 'wind'], hue: [0.1, 0.16], tone: [0.03, 0.1, 0.5, 0.68] },
+  { name: '毒の沼', note: 'ステージの端は毒！', foe: { body: ['slime'], head: ['none'], hat: ['none', 'horns', 'antenna'], eyes: ['cyclops', 'sleepy'], name: ['ドク', 'ヌマ', 'ベノ', 'ジメ', 'ケロ'], special: 'swamp' }, amb: 'bubble', sky: ['#1a2a14', '#7fa84a'], fog: 0x4a6a3a, floor: ['#cfe0b8', '#8fb070', '#a6ff4a'], side: 0x3a5030, rim: [0xa6ff4a, 0x4aff7a], rock: [0.3, 0.35, 0.3],
+    poison: 4, elem: ['poison', 'poison', 'none'], hue: [0.22, 0.38] },
+  { name: '宇宙', note: '重力が軽い！', foe: { body: ['ufo'], head: ['none'], hat: ['antenna', 'halo', 'none'], eyes: ['visor', 'cyclops'], name: ['ホシ', 'コスモ', 'ルナ', 'メテオ', 'ユーフォ'], special: 'gravity' }, amb: 'space', sky: ['#05040f', '#2a1a5e'], fog: 0x1a1240, floor: ['#2a2450', '#6a5ab8', '#ffffff'], side: 0x221c44, rim: [0xb48aff, 0x7a3aff], rock: [0.75, 0.25, 0.5],
+    grav: 0.55 },
+];
+// 階層の敵だけが使う必殺技。どれも足もとに予告の輪が出てから起きるので、よければ当たらない（ガードもできる）
+//   ゲージのたまり方は「気弾」と同じ（SKILL_COST.shot）。試合の最初から半分たまっている（startBattle）
+const SPECIALS = {
+  icicle:  { name: 'つららの雨', icon: '🧊' },      // 相手のまわりに3本のつらら（当たると遅くなる）
+  meteor:  { name: 'メテオ', icon: '☄️' },          // 大きな輪のあとに隕石（大きくふっとぶ・やけど）
+  thunder: { name: 'サンダーコール', icon: '⚡' },   // 自分から相手へ一列に3本の雷
+  swamp:   { name: '毒だまり', icon: '🫧' },         // 相手の足もとに毒の水たまり（入ると削られる・遅くなる）
+  gravity: { name: 'ブラックホール', icon: '🌀' },   // 吸いこむ穴（走れば抜けられる。まんなかは削られる）
+};
+const stageNo = streak => Math.min(STAGES.length - 1, Math.floor(Math.max(0, streak) / 10));
+let STAGE = STAGES[0];
 function applyBoost(f, k) {
   const B = ENDLESS_BOOST, up = ([per, max]) => Math.min(max, 1 + per * k);
   f.boost = k;
@@ -724,6 +793,24 @@ function randomBuild() {
   }
   return b;
 }
+// 勝ち抜きの相手：その階層に合った属性・色あい・体・帽子・目・名前
+function stageBuild(no) {
+  const stg = STAGES[no], b = randomBuild();
+  if (stg.elem) b.element = pick(stg.elem);
+  if (stg.hue) {
+    const [a, c] = stg.hue, h = (a + Math.random() * (((c - a) % 1 + 1) % 1)) % 1;
+    const hsl = (sat, l) => '#' + new THREE.Color().setHSL(h + (Math.random() - 0.5) * 0.04, sat, l).getHexString();
+    const [s0, s1, l0, l1] = stg.tone || [0.6, 0.9, 0.45, 0.6];
+    b.color = hsl(s0 + Math.random() * (s1 - s0), l0 + Math.random() * (l1 - l0)); b.accent = hsl(0.7, 0.25 + Math.random() * 0.15);
+  }
+  if (stg.foe) {
+    const F = stg.foe;
+    b.body = pick(F.body); b.hat = pick(F.hat); b.eyes = pick(F.eyes); b.name = pick(F.name) + pick(NAME_B);
+    if (F.head) b.head = pick(F.head);
+    if (F.special) { b.special = F.special; b.skill = 'shot'; }   // skill はゲージのたまり方（SKILL_COST）だけに使う
+  }
+  return b;
+}
 function defaultBuild(i) {
   return { name: i ? 'ブルー' : 'レッド', body: 'cube', head: 'ball', eyes: 'normal', hat: 'horns', size: 1, bsize: 'M',
            color: i ? '#3fa9ff' : '#ff4d6d', accent: '#2b2540', wHead: 'sword', element: 'fire',
@@ -732,7 +819,7 @@ function defaultBuild(i) {
 
 function getStats(b) {
   const Z = SIZE[b.bsize] || SIZE.M, s = Z.s;   // HPは大きさに関係なく全員100
-  const st = { hp: BASE.hp, speed: 6.2 * Z.spd, def: 1, knockRes: Z.wt, jump: 10.5 * Z.jump, radius: 0.55 * s };
+  const st = { hp: BASE.hp, speed: 6.2 * Z.spd, def: 1, knockRes: Z.wt, jump: 10.5 * Z.jump, radius: 0.55 * sizeOf(b) };
 
   // 能力ポイント（5が標準＝×1.0、10で×1.3、1で×0.76）
   const P = defaultPts();   // 能力ポイントは廃止（全員同じ）
@@ -772,6 +859,20 @@ function getStats(b) {
 function mat(color, extra = {}) { return new THREE.MeshStandardMaterial({ color, roughness: 0.5, metalness: 0.05, ...extra }); }
 const BLACK = mat(0x111111), WHITE = mat(0xffffff, { roughness: 0.3 });
 const GOLD = mat(0xffcc33, { metalness: 0.7, roughness: 0.3 });
+// 消したキャラ・弾・演出の形と材料を GPU から捨てる（捨てないと遊ぶほどメモリが増え、iPhone では画面が落ちてタイトルに戻る。2026-10-21）
+//   KEEP_GPU に入れたもの（いくつもの物で使い回している形・材料・絵）は捨てない
+const KEEP_GPU = new Set([BLACK, WHITE, GOLD]);
+function disposeDeep(o) {
+  o.traverse(m => {
+    if (m.geometry && !KEEP_GPU.has(m.geometry)) m.geometry.dispose();
+    for (const mt of [].concat(m.material || [])) {
+      if (KEEP_GPU.has(mt)) continue;
+      if (mt.map && !KEEP_GPU.has(mt.map)) mt.map.dispose();
+      mt.dispose();
+    }
+    if (m.customDepthMaterial) m.customDepthMaterial.dispose();
+  });
+}
 
 function shadowAll(o) { o.traverse(m => { if (m.isMesh) { m.castShadow = true; } }); }
 
@@ -970,17 +1071,54 @@ function buildCharacter(b) {
     const f = new THREE.Mesh(footGeo, accM); f.scale.set(1, 0.7, 1.3); f.position.set(0.25 * sx, 0.14, 0.05); inner.add(f); feet.push(f);
   }
   const torso = new THREE.Group(); inner.add(torso);
-  let body, top, halfW, bodyY, faceZ;
+  let body, top, halfW, bodyY, faceZ, eyeY, noFeet = false;
+  const glowM = (color, opacity) => new THREE.MeshBasicMaterial({ color, transparent: opacity < 1, opacity });   // 光る飾り（状態の色で上書きされない）
   switch (b.body) {
     case 'cube':   body = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 0.8), bodyM); bodyY = 0.75; top = 1.25; halfW = 0.5; faceZ = 0.41; break;
     case 'ball':   body = new THREE.Mesh(new THREE.SphereGeometry(0.6, 32, 24), bodyM); bodyY = 0.85; top = 1.43; halfW = 0.6; faceZ = 0.5; break;
     case 'pillar': body = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 1.2, 28), bodyM); bodyY = 0.85; top = 1.45; halfW = 0.45; faceZ = 0.44; break;
+    // ここから下は勝ち抜きの階層の敵だけの形（見た目だけ。当たり判定・強さは体の大きさで決まり、ほかと同じ）
+    case 'crystal': {   // 氷の結晶
+      body = new THREE.Mesh(new THREE.OctahedronGeometry(0.66), bodyM); body.scale.set(1, 1.35, 0.85); bodyY = 0.95; top = 1.84; halfW = 0.55; faceZ = 0.42; eyeY = 1.1;
+      for (const [x, y, k] of [[-0.55, 0.5, 0.3], [0.6, 0.65, 0.24], [0.1, 1.95, 0.2]]) { const c = new THREE.Mesh(new THREE.OctahedronGeometry(k), glowM(0xbff4ff, 0.75)); c.position.set(x, y, -0.1); torso.add(c); }
+      break;
+    }
+    case 'magma': {   // 溶岩のかたまり（光るひび）
+      body = new THREE.Mesh(new THREE.DodecahedronGeometry(0.64), bodyM); bodyY = 0.85; top = 1.45; halfW = 0.6; faceZ = 0.5; eyeY = 1.02;
+      const cracks = new THREE.LineSegments(new THREE.EdgesGeometry(body.geometry), new THREE.LineBasicMaterial({ color: 0xffa020 }));
+      cracks.scale.setScalar(1.01); body.add(cracks);
+      break;
+    }
+    case 'cloud': {   // 雷雲
+      body = new THREE.Group(); bodyY = 0.9; top = 1.45; halfW = 0.7; faceZ = 0.52; eyeY = 0.98;
+      for (const [x, y, z, r] of [[0, 0, 0, 0.5], [-0.42, -0.08, 0, 0.36], [0.42, -0.06, 0, 0.38], [0, 0.32, -0.05, 0.38], [-0.2, -0.22, 0.18, 0.3], [0.22, -0.2, 0.2, 0.3]]) {
+        const p = new THREE.Mesh(new THREE.SphereGeometry(r, 18, 14), bodyM); p.position.set(x, y, z); body.add(p);
+      }
+      for (const sx of [-1, 1]) { const z = new THREE.Mesh(new THREE.ConeGeometry(0.07, 0.4, 4), glowM(0xffe94a, 1)); z.position.set(sx * 0.35, -0.55, 0.1); z.rotation.z = sx * 0.4 + Math.PI; body.add(z); }
+      noFeet = true;
+      break;
+    }
+    case 'slime': {   // 毒のスライム
+      body = new THREE.Mesh(new THREE.SphereGeometry(0.62, 28, 20), bodyM); body.scale.set(1.15, 0.78, 1.15); bodyY = 0.5; top = 0.98; halfW = 0.7; faceZ = 0.64; eyeY = 0.66;
+      for (const [x, z, r] of [[0.35, 0.3, 0.1], [-0.3, -0.25, 0.08], [0.05, -0.4, 0.07]]) { const d = new THREE.Mesh(new THREE.SphereGeometry(r, 10, 8), glowM(0xa6ff4a, 0.8)); d.position.set(x, 0.92, z); torso.add(d); }
+      noFeet = true;
+      break;
+    }
+    case 'ufo': {   // 円盤
+      body = new THREE.Group(); bodyY = 0.8; top = 1.5; halfW = 0.75; faceZ = 0.36; eyeY = 1.16;
+      const disk = new THREE.Mesh(new THREE.SphereGeometry(0.62, 32, 16), bodyM); disk.scale.set(1.35, 0.32, 1.35); body.add(disk);
+      const dome = new THREE.Mesh(new THREE.SphereGeometry(0.4, 24, 16, 0, Math.PI * 2, 0, Math.PI / 2), glowM(0xbfe8ff, 0.55)); dome.position.y = 0.12; body.add(dome);
+      for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2, l = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 6), glowM(i % 2 ? 0xffe94a : 0x7fe3ff, 1)); l.position.set(Math.sin(a) * 0.8, -0.02, Math.cos(a) * 0.8); body.add(l); }
+      noFeet = true;
+      break;
+    }
     default:       body = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.62, 1.25, 28), bodyM); bodyY = 0.85; top = 1.47; halfW = 0.5; faceZ = 0.33; break;
   }
+  if (noFeet) for (const f of feet) f.visible = false;   // 浮かんでいる・足のない形
   body.position.y = bodyY; torso.add(body);
   let headTop;
   if (b.head === 'none') {
-    addEyes(torso, top - 0.32, faceZ, b.eyes, b.accent);
+    addEyes(torso, eyeY ?? top - 0.32, faceZ, b.eyes, b.accent);
     headTop = top;
   } else {
     const h = b.head === 'ball'
@@ -1051,6 +1189,7 @@ function finishCharacter(b, root, inner, accM, info, parts) {
    レンダラー & シーン
    ========================================================= */
 const renderer = new THREE.WebGLRenderer({ antialias: true });
+if (PLATFORM === 'dev') window.__bp = { renderer, get scene() { return scene; }, get pScene() { return pScene; }, get camera() { return camera; } };   // 開発用：localhost でだけ、メモリの数（renderer.info.memory）をブラウザから確かめられるように
 const IS_TOUCH = matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window || location.search.includes('touch');
 if (IS_TOUCH) document.body.classList.add('touch');
 renderer.setPixelRatio(Math.min(devicePixelRatio, IS_TOUCH ? 1.5 : 2));
@@ -1065,7 +1204,8 @@ shatterLayer.id = 'shatter';
 renderer.domElement.after(shatterLayer);
 
 const camera = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, 0.1, 300);
-const ARENA_R = 9;
+let ARENA_R = 9;   // ステージの半径（ステージによって変わる。setStage）
+const POISON_W = 2;   // 毒の沼：端からこの幅が毒
 
 function makeSky(top, bottom) {
   const c = document.createElement('canvas'); c.width = 2; c.height = 256;
@@ -1086,34 +1226,154 @@ function addLights(scene, shadowSize) {
 
 // --- バトル用シーン
 const scene = new THREE.Scene();
-scene.background = makeSky('#4b3a8f', '#f59e8b');
-scene.fog = new THREE.Fog(0x9c6fa8, 30, 80);
 addLights(scene, 13);
-{
+// ステージ（空・床・ふち・浮かぶ岩）。勝ち抜きでは10連勝ごとに作り直す（STAGES）
+let arena = null;
+function setStage(stg) {
+  if (arena && STAGE === stg) return;
+  STAGE = stg; ARENA_R = stg.r || 9;
+  if (arena) { scene.remove(arena); arena.traverse(o => { o.geometry?.dispose(); if (o.material) { if (o.material.map !== DOT_TEX) o.material.map?.dispose(); o.material.dispose(); } }); }
+  scene.background?.dispose?.();
+  scene.background = makeSky(...stg.sky);
+  scene.fog = new THREE.Fog(stg.fog, 30, 80);
+  arena = new THREE.Group(); scene.add(arena);
   const c = document.createElement('canvas'); c.width = c.height = 512;
   const x = c.getContext('2d');
-  x.fillStyle = '#e9e3f5'; x.fillRect(0, 0, 512, 512);
-  x.strokeStyle = '#c9bfe0'; x.lineWidth = 3;
+  const [base, line, mid] = stg.floor;
+  x.fillStyle = base; x.fillRect(0, 0, 512, 512);
+  x.strokeStyle = line; x.lineWidth = 3;
   for (let r = 40; r < 256; r += 48) { x.beginPath(); x.arc(256, 256, r, 0, Math.PI * 2); x.stroke(); }
   for (let i = 0; i < 8; i++) { x.beginPath(); x.moveTo(256, 256); const a = i / 8 * Math.PI * 2; x.lineTo(256 + Math.cos(a) * 256, 256 + Math.sin(a) * 256); x.stroke(); }
-  x.fillStyle = '#ffd23f'; x.beginPath(); x.arc(256, 256, 22, 0, Math.PI * 2); x.fill();
+  x.fillStyle = mid; x.beginPath(); x.arc(256, 256, 22, 0, Math.PI * 2); x.fill();
   const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
-  const top = new THREE.Mesh(new THREE.CircleGeometry(ARENA_R, 64), new THREE.MeshStandardMaterial({ map: tex, roughness: 0.8 }));
-  top.rotation.x = -Math.PI / 2; top.receiveShadow = true; scene.add(top);
-  const side = new THREE.Mesh(new THREE.CylinderGeometry(ARENA_R, ARENA_R * 0.75, 2.4, 64, 1, true), mat(0x6d5a9e));
-  side.position.y = -1.2; scene.add(side);
-  const rim = new THREE.Mesh(new THREE.TorusGeometry(ARENA_R, 0.12, 8, 80), new THREE.MeshStandardMaterial({ color: 0xffd23f, emissive: 0xff8a00, emissiveIntensity: 0.4 }));
-  rim.rotation.x = Math.PI / 2; scene.add(rim);
+  const top = new THREE.Mesh(new THREE.CircleGeometry(ARENA_R, 64), new THREE.MeshStandardMaterial({ map: tex, roughness: stg.grip ? 0.15 : 0.8, metalness: stg.grip ? 0.15 : 0 }));
+  top.rotation.x = -Math.PI / 2; top.receiveShadow = true; arena.add(top);
+  const side = new THREE.Mesh(new THREE.CylinderGeometry(ARENA_R, ARENA_R * 0.75, 2.4, 64, 1, true), mat(stg.side));
+  side.position.y = -1.2; arena.add(side);
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(ARENA_R, 0.12, 8, 80), new THREE.MeshStandardMaterial({ color: stg.rim[0], emissive: stg.rim[1], emissiveIntensity: 0.4 }));
+  rim.rotation.x = Math.PI / 2; arena.add(rim);
+  if (stg.poison) {   // 毒の沼：端の毒のところを緑に
+    const ring = new THREE.Mesh(new THREE.RingGeometry(ARENA_R - POISON_W, ARENA_R, 64), new THREE.MeshBasicMaterial({ color: 0x7dff3a, transparent: true, opacity: 0.35, depthWrite: false }));
+    ring.rotation.x = -Math.PI / 2; ring.position.y = 0.02; arena.add(ring);
+  }
   // 浮かぶ岩
+  const [h, sat, l] = stg.rock;
   for (let i = 0; i < 26; i++) {
     const a = Math.random() * Math.PI * 2, r = 14 + Math.random() * 30;
-    const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(0.6 + Math.random() * 2.2), mat(new THREE.Color().setHSL(0.72 + Math.random() * 0.1, 0.3, 0.45)));
+    const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(0.6 + Math.random() * 2.2), mat(new THREE.Color().setHSL(h + Math.random() * 0.1, sat, l)));
     rock.position.set(Math.cos(a) * r, -6 - Math.random() * 14 + (r > 30 ? 8 : 0), Math.sin(a) * r);
     rock.rotation.set(Math.random() * 3, Math.random() * 3, 0);
     rock.userData.bob = Math.random() * 6;
-    scene.add(rock);
+    arena.add(rock);
   }
+  buildAmbient(stg);
 }
+// まわりの雰囲気（STAGES の amb）。動くものは arena.userData.tick で毎フレーム動かす
+// 丸い粒の絵（雪・泡などを四角ではなく丸く）
+const DOT_TEX = (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 32;
+  const x = c.getContext('2d'), g = x.createRadialGradient(16, 16, 0, 16, 16, 16);
+  g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.6, 'rgba(255,255,255,0.8)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+  x.fillStyle = g; x.fillRect(0, 0, 32, 32);
+  return new THREE.CanvasTexture(c);
+})();
+function buildAmbient(stg) {
+  const ticks = [];
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  // 粒（雪・火の粉・泡）：範囲の中を流れて、はしまで行ったら反対側から戻る
+  const particles = (n, color, size, opacity, area, vel, extra = {}) => {
+    const pos = new Float32Array(n * 3), sp = new Float32Array(n);
+    for (let i = 0; i < n; i++) { const a = rnd(0, 6.283), r = rnd(area.r0, area.r1); pos.set([Math.cos(a) * r, rnd(area.y0, area.y1), Math.sin(a) * r], i * 3); sp[i] = rnd(0.6, 1.4); }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    const pts = new THREE.Points(g, new THREE.PointsMaterial({ color, size, map: DOT_TEX, transparent: true, opacity, depthWrite: false, ...extra }));
+    arena.add(pts);
+    let T = 0;
+    ticks.push(dt => {
+      T += dt;
+      for (let i = 0; i < n; i++) {
+        const k = i * 3;
+        pos[k] += Math.sin(T * 0.8 + i) * vel.sway * dt; pos[k + 1] += vel.y * sp[i] * dt; pos[k + 2] += Math.cos(T * 0.7 + i) * vel.sway * dt;
+        if (pos[k + 1] < area.y0) pos[k + 1] = area.y1; else if (pos[k + 1] > area.y1) pos[k + 1] = area.y0;
+      }
+      g.attributes.position.needsUpdate = true;
+    });
+  };
+  const far = (m, x, y, z) => { m.position.set(x, y, z); m.traverse(o => { if (o.material) o.material.fog = false; }); arena.add(m); return m; };
+  switch (stg.amb) {
+    case 'snow': {   // 雪と、遠くの氷の柱
+      particles(500, 0xffffff, 0.28, 0.9, { r0: 0, r1: 28, y0: -12, y1: 16 }, { y: -1.4, sway: 0.5 });
+      for (let i = 0; i < 9; i++) {
+        const a = i / 9 * 6.283 + rnd(-0.2, 0.2), h = rnd(6, 16);
+        const c = new THREE.Mesh(new THREE.ConeGeometry(rnd(1, 2), h, 6), new THREE.MeshStandardMaterial({ color: 0xbfe8ff, roughness: 0.15, metalness: 0.2, transparent: true, opacity: 0.85 }));
+        c.position.set(Math.cos(a) * rnd(32, 42), h / 2 - 10, Math.sin(a) * rnd(32, 42)); arena.add(c);
+      }
+      break;
+    }
+    case 'ember': {   // 舞い上がる火の粉と、遠くの火山
+      particles(260, 0xff8a2b, 0.3, 0.9, { r0: 4, r1: 26, y0: -12, y1: 14 }, { y: 1.8, sway: 0.8 }, { blending: THREE.AdditiveBlending });
+      for (const [a, d, h] of [[0.6, 48, 18], [2.3, 52, 24], [4.1, 46, 15], [5.3, 55, 20]]) {
+        const v = new THREE.Group();
+        v.add(new THREE.Mesh(new THREE.ConeGeometry(h * 0.8, h, 7), mat(0x2a1512)));
+        const lava = new THREE.Mesh(new THREE.SphereGeometry(h * 0.16, 12, 8), new THREE.MeshBasicMaterial({ color: 0xff5a1a })); lava.position.y = h / 2; v.add(lava);
+        v.position.set(Math.cos(a) * d, h / 2 - 14, Math.sin(a) * d); arena.add(v);
+      }
+      break;
+    }
+    case 'rain': {   // 雨と、ときどき光る遠くの雷
+      const n = 600, pos = new Float32Array(n * 6);
+      const drop = i => { const a = rnd(0, 6.283), r = rnd(0, 26), x = Math.cos(a) * r, z = Math.sin(a) * r, y = rnd(-10, 18); pos.set([x, y, z, x + 0.08, y + 0.7, z], i * 6); };
+      for (let i = 0; i < n; i++) drop(i);
+      const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+      arena.add(new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color: 0xb8c4ff, transparent: true, opacity: 0.45 })));
+      const flash = new THREE.AmbientLight(0xdfe4ff, 0); arena.add(flash);
+      let next = rnd(1.5, 4), on = 0, bolt = null;
+      ticks.push(dt => {
+        for (let i = 0; i < n; i++) { const k = i * 6; pos[k + 1] -= 24 * dt; pos[k + 4] -= 24 * dt; if (pos[k + 1] < -10) drop(i); }
+        g.attributes.position.needsUpdate = true;
+        next -= dt; on = Math.max(0, on - dt);
+        flash.intensity = on > 0 ? 2.2 * (on / 0.25) : 0;
+        if (bolt) bolt.visible = on > 0.1;
+        if (next <= 0) {   // 遠くの空に稲妻（ジグザグの線）
+          next = rnd(2.5, 6); on = 0.25;
+          if (bolt) { arena.remove(bolt); bolt.geometry.dispose(); }
+          const a = rnd(0, 6.283), d = rnd(35, 50), pts = [];
+          let x = Math.cos(a) * d, z = Math.sin(a) * d;
+          for (let y = 30; y > -6; y -= rnd(2.5, 4.5)) { pts.push(new THREE.Vector3(x, y, z)); x += rnd(-2, 2); z += rnd(-2, 2); }
+          bolt = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: 0xfff6a0, fog: false }));
+          arena.add(bolt);
+        }
+      });
+      break;
+    }
+    case 'bubble': {   // わき上がる毒の泡と、遠くの枯れ木
+      particles(160, 0xa6ff4a, 0.45, 0.6, { r0: 3, r1: 22, y0: -10, y1: 4 }, { y: 1.2, sway: 0.3 });
+      for (let i = 0; i < 10; i++) {
+        const a = rnd(0, 6.283), d = rnd(22, 36), h = rnd(5, 9), tree = new THREE.Group();
+        tree.add(new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.45, h, 6), mat(0x2e2a1e)));
+        for (let k = 0; k < 3; k++) { const br = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.15, rnd(1.5, 3), 5), mat(0x2e2a1e)); br.position.y = rnd(0, h / 2); br.rotation.z = rnd(-1.2, 1.2); br.rotation.y = rnd(0, 6); tree.add(br); }
+        tree.position.set(Math.cos(a) * d, h / 2 - 9, Math.sin(a) * d); arena.add(tree);
+      }
+      break;
+    }
+    case 'space': {   // 星空と惑星
+      const n = 900, pos = new Float32Array(n * 3);
+      for (let i = 0; i < n; i++) { const u = rnd(-1, 1), a = rnd(0, 6.283), r = 70, q = Math.sqrt(1 - u * u); pos.set([Math.cos(a) * q * r, u * r, Math.sin(a) * q * r], i * 3); }
+      const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+      const stars = new THREE.Points(g, new THREE.PointsMaterial({ color: 0xffffff, size: 0.9, map: DOT_TEX, transparent: true, depthWrite: false, fog: false })); arena.add(stars);
+      const planet = new THREE.Group();
+      planet.add(new THREE.Mesh(new THREE.SphereGeometry(9, 32, 24), new THREE.MeshStandardMaterial({ color: 0xd98a4a, roughness: 0.9 })));
+      const ring = new THREE.Mesh(new THREE.RingGeometry(11.5, 16, 64), new THREE.MeshBasicMaterial({ color: 0xf2c98a, transparent: true, opacity: 0.6, side: THREE.DoubleSide }));
+      ring.rotation.x = Math.PI / 2.4; planet.add(ring); planet.rotation.z = 0.35;
+      planet.scale.setScalar(1.3); far(planet, -34, 0, -66);
+      far(new THREE.Mesh(new THREE.SphereGeometry(3.6, 24, 16), new THREE.MeshStandardMaterial({ color: 0x9aa4c8, roughness: 1 })), 30, 6, -56);
+      far(new THREE.Mesh(new THREE.SphereGeometry(5, 24, 16), new THREE.MeshStandardMaterial({ color: 0x4a8adf, roughness: 0.7 })), 46, -8, 34);
+      ticks.push(dt => { stars.rotation.y += dt * 0.01; planet.rotation.y += dt * 0.05; });
+      break;
+    }
+  }
+  arena.userData.tick = dt => { for (const t of ticks) t(dt); };
+}
+setStage(STAGES[0]);
 
 // --- クリエイター用シーン
 const pScene = new THREE.Scene();
@@ -1142,12 +1402,19 @@ let AC = null;
 // true で効果音をすべて止める（2026-10-10 に一時ミュート → 2026-10-15 音を戻した）
 //   このMacで動作確認するとき（localhost で開いたとき・?mute を付けたとき・iOS シミュレーター用に UA に BPMute を付けてビルドしたとき）だけ鳴らさない（2026-10-15 ユーザーの希望）。アプリ・TestFlight・GitHub Pages は鳴る
 const MUTE = PLATFORM === 'dev' || /[?&]mute\b/.test(location.search) || navigator.userAgent.includes('BPMute');
+// iPhone では、電話・通知・ほかのアプリの音・広告・バックグラウンドのあと、音が止まったまま戻らないことがある（2026-10-21 リリース後の報告「急に音がなくなる」）
+//   → 画面に戻ってきたとき・広告を閉じたときは音の仕組みを作り直し、画面をさわったときに止まっていれば再開する
+function resetAudio() { if (AC) { try { AC.close(); } catch { /* もう閉じている */ } AC = null; } }
+document.addEventListener('visibilitychange', () => { if (!document.hidden) resetAudio(); });
+addEventListener('pageshow', resetAudio);
+for (const ev of ['pointerdown', 'touchend']) document.addEventListener(ev, () => { if (AC && AC.state !== 'running') AC.resume?.().catch(resetAudio); }, { passive: true, capture: true });
 function sfx(kind) {
   if (netRec()) NET.events.push(['sfx', kind]);
   if (MUTE) return;
   try {
+    if (AC?.state === 'closed') AC = null;
     AC ??= new (window.AudioContext || window.webkitAudioContext)();
-    if (AC.state === 'suspended') AC.resume();
+    if (AC.state !== 'running') AC.resume?.().catch(() => {});   // iPhone は suspended のほかに interrupted（電話・通知のあと）でも止まる
     const t = AC.currentTime;
     const tone = (f1, f2, dur, type = 'square', vol = 0.12) => {
       const o = AC.createOscillator(), g = AC.createGain();
@@ -1223,7 +1490,7 @@ function readPad(i) {
 // iPhone の長押しルーペ・コピーメニュー・ダブルタップ拡大を止める（入力欄は除く）
 for (const ev of ['touchstart', 'touchmove']) {
   document.addEventListener(ev, e => {
-    if (mode === 'battle' && !e.target.closest('input, textarea, button.big-btn, #pauseBtn, #pause, #result, #tut, #btnEdit')) e.preventDefault();
+    if (mode === 'battle' && !e.target.closest('input, textarea, button.big-btn, #pauseBtn, #pause, #result, #tut, #btnEdit, #sheet')) e.preventDefault();
   }, { passive: false });
 }
 document.addEventListener('contextmenu', e => { if (!e.target.closest('input, textarea')) e.preventDefault(); });
@@ -1435,7 +1702,7 @@ function ringFx(pos, color, maxR = 3.5, dur = 0.45) {
   if (netRec()) NET.events.push(['ring', [pos.x, pos.y, pos.z], color, maxR, dur]);
   const m = new THREE.Mesh(new THREE.TorusGeometry(1, 0.12, 8, 48), new THREE.MeshBasicMaterial({ color, transparent: true }));
   m.rotation.x = Math.PI / 2; m.position.copy(pos); m.position.y += 0.1; scene.add(m);
-  effects.push({ t: 0, dur, update(e) { const k = e.t / dur; m.scale.setScalar(0.2 + k * maxR); m.material.opacity = 1 - k; }, dispose() { scene.remove(m); } });
+  effects.push({ t: 0, dur, update(e) { const k = e.t / dur; m.scale.setScalar(0.2 + k * maxR); m.material.opacity = 1 - k; }, dispose() { scene.remove(m); m.geometry.dispose(); m.material.dispose(); } });
 }
 // ガードした瞬間、盾の位置から六角形の波紋を広げる
 // ===== 当たったときの演出（衝撃の輪・斬撃の線・属性ごとの粒・画面の光） =====
@@ -1603,7 +1870,11 @@ class Fighter {
     this.m.root.rotation.set(0, yaw, 0);
     this.ai = null;
   }
-  dispose() { this.parent.remove(this.m.root); if (this.ring) scene.remove(this.ring); if (this.trail) { this.parent.remove(this.trail); this.trail.geometry.dispose(); this.trail.material.dispose(); } }
+  dispose() {
+    this.parent.remove(this.m.root); disposeDeep(this.m.root);
+    if (this.ring) { scene.remove(this.ring); disposeDeep(this.ring); }
+    if (this.trail) { this.parent.remove(this.trail); this.trail.geometry.dispose(); this.trail.material.dispose(); }
+  }
   get fwd() { return new THREE.Vector3(Math.sin(this.yaw), 0, Math.cos(this.yaw)); }
   center() { return new THREE.Vector3(this.pos.x, this.pos.y + 0.9 * this.b.size, this.pos.z); }
   // 攻撃が当たる相手（味方と倒れた人はのぞく）
@@ -1687,7 +1958,7 @@ class Fighter {
 
     if (control && this.state !== 'dash' && this.state !== 'dodge') {
       const sp = st.speed * (S.slow > 0 ? 0.55 : 1) * (this.state === 'attack' || this.state === 'charge' ? 0.3 : 1) * (this.guarding ? 0.35 : 1);
-      const k = Math.min(1, (this.grounded ? 14 : 8) * dt);   // 空中でも左右に動きやすく（復帰しやすい）
+      const k = Math.min(1, (this.grounded ? 14 * (STAGE.grip || 1) : 8) * dt);   // 空中でも左右に動きやすく（復帰しやすい）。氷の床はすべる
       this.vel.x += (inp.mx * sp - this.vel.x) * k;
       this.vel.z += (inp.mz * sp - this.vel.z) * k;
       if (Math.hypot(inp.mx, inp.mz) > 0.15 && this.state !== 'attack' && !this.guarding) this.targetYaw = Math.atan2(inp.mx, inp.mz);
@@ -1702,12 +1973,12 @@ class Fighter {
       else if (this.state === 'idle' && this.atkHeld && this.holdT >= CHARGE.hold && !this.charged && this.grounded) this.startCharge();
       else if (B.skill > 0 && this.state === 'idle' && this.sp >= 1 && !(this.blockStun > 0)) { B.skill = 0; this.useSkill(opp); }
     } else if (this.state !== 'dash' && this.state !== 'dodge') {
-      const fr = Math.min(1, (this.grounded ? 5 : KB.airDrag) * dt);
+      const fr = Math.min(1, (this.grounded ? 5 * (STAGE.grip || 1) : KB.airDrag) * dt);
       this.vel.x -= this.vel.x * fr; this.vel.z -= this.vel.z * fr;
     }
 
     this.yaw = angleLerp(this.yaw, this.targetYaw, Math.min(1, dt * 14));
-    this.vel.y -= 26 * dt;
+    this.vel.y -= 26 * (STAGE.grav || 1) * dt;   // 宇宙は重力が軽い
     const prevY = this.pos.y;
     this.pos.addScaledVector(this.vel, dt);
     const r = Math.hypot(this.pos.x, this.pos.z);
@@ -1885,6 +2156,7 @@ class Fighter {
     if (G.tut && this.idx === 0) tutCount('skill');
     sfx('skill');
     const c = this.center();
+    if (this.b.special) { castSpecial(this, opp); return; }   // 階層の敵の特殊な必殺技
     const aim = () => { if (this.stickDir !== null) this.yaw = this.targetYaw = this.stickDir; };
     switch (sk) {
       case 'dash': {
@@ -2244,6 +2516,7 @@ function comboBreak(tgt, att, dir) {
   sfx('block');
 }
 
+function dropProj(p) { scene.remove(p.m); disposeDeep(p.m); }
 function updateProjectiles(dt) {
   for (let i = G.projectiles.length - 1; i >= 0; i--) {
     const p = G.projectiles[i];
@@ -2270,7 +2543,7 @@ function updateProjectiles(dt) {
         }
       }
     }
-    if (gone) { scene.remove(p.m); G.projectiles.splice(i, 1); }
+    if (gone) { dropProj(p); G.projectiles.splice(i, 1); }
   }
 }
 
@@ -2367,7 +2640,7 @@ function cpuInput(f, o, dt) {
       ai.guardT = 0.35 + Math.random() * 0.35; ai.atk = false; ai.jmp = false;
     }
     const hpR = f.hp / f.st.hp;
-    const want2 = {
+    const want2 = f.b.special ? d > 1.5 : {   // 階層の敵の必殺技は、たまったら使う
       heal: hpR < 0.5, shot: d > 4, dash: d > 2.5 && d < 9, quake: d < 3.2,
       blink: d > 4, shield: o.state === 'attack' && d < 3.5,
     }[f.st.skill];
@@ -2495,8 +2768,8 @@ function updateHud(dt) {
     const sk = el.querySelector('.spg'), ready = f.sp >= 1;
     sk.classList.toggle('ready', ready);
     sk.querySelector('i').style.width = (f.sp * 100) + '%';
-    const nm = OPTS.skill.find(s => s[0] === f.b.skill)[1];
-    sk.querySelector('b').textContent = ready ? `${ICONS.skill[f.b.skill]} ${nm} OK!` : `${ICONS.skill[f.b.skill]} ${nm}`;
+    const sp = SPECIALS[f.b.special], nm = sp ? sp.name : OPTS.skill.find(s => s[0] === f.b.skill)[1], ic = sp ? sp.icon : ICONS.skill[f.b.skill];
+    sk.querySelector('b').textContent = ready ? `${ic} ${nm} OK!` : `${ic} ${nm}`;
     el.querySelector('.stars').textContent = '★'.repeat(G.wins[f.team] || 0) + '☆'.repeat(Math.max(0, G.need - (G.wins[f.team] || 0)));
     el.classList.toggle('down', f.dead || f.out);
   });
@@ -2528,22 +2801,25 @@ function matchMode() { return NET.role ? 'online' : G.tut ? 'tutorial' : G.endle
 function startBattle() {
   clearTitleDemo();
   for (const f of G.fighters) f.dispose();
-  for (const p of G.projectiles) scene.remove(p.m);
+  for (const p of G.projectiles) dropProj(p);
   G.projectiles = [];
   if (G.endless || G.tut || G.watch || !G.vsCPU) G.rule = 'duel';   // 4人対戦は CPU対戦・オンラインだけ
+  if (G.endless) { setStage(STAGES[stageNo(G.streak)]); G.builds[1] ??= stageBuild(stageNo(G.streak)); }
+  else setStage(STAGES[0]);
   if (!NET.role) { G.builds.length = RULES[G.rule].n; for (let i = 0; i < G.builds.length; i++) G.builds[i] ??= randomBuild(); }   // 空いている席は CPU（キャラはおまかせ）
   // CPU が動かすキャラ：オンラインは人がいない席、それ以外は 2人目から（ふたりでモードは2人目も人）
   const isCpu = i => G.watch || (NET.role ? !G.humans.includes(i) : i > 0 && G.vsCPU);
   G.fighters = G.builds.map((b, i) => new Fighter(b, i, isCpu(i), scene, teamOf(i)));
   prewarm();
-  if (G.streak < 0) G.streak = 0;
+  if (G.streak < 0) { G.streak = 0; G.revived = 0; }   // 新しい挑戦（つくりなおしてから始めたときも）は復活の回数も元に戻す
   if (!G.watch) for (const f of G.fighters) if (f.cpu) f.cpuLv = G.endless ? endlessLv() : G.cpuLv;
+  for (const f of G.fighters) if (f.b.special) f.sp = 0.5;
   if (G.endless && G.streak >= ENDLESS_BOOST.from) applyBoost(G.fighters[1], G.streak - ENDLESS_BOOST.from + 1);
   G.matchT0 = performance.now(); G.roundLog = [];
   if (!G.watch) {
     const me = G.builds[NET.role ? NET.me : 0] || {};
     track('match_start', { mode: matchMode(), rule: G.rule, players: G.fighters.length, cpu_lv: G.vsCPU && !NET.role && !G.tut ? CPU_LV[G.fighters[1].cpuLv]?.name : null, streak: G.endless ? G.streak : null,
-                           weapon: me.wHead, element: me.element, skill: me.skill, size: me.bsize });
+                           floor: G.endless ? stageNo(G.streak) + 1 : null, weapon: me.wHead, element: me.element, skill: me.skill, size: me.bsize });
   }
   G.need = G.endless || G.tut ? 1 : 2;   // 勝ち抜き・チュートリアルは1本勝負でテンポよく
   G.wins = Array(nTeams()).fill(0); G.round = 1;
@@ -2563,14 +2839,139 @@ function spawnPoints(n) {
 function startRound() {
   $('roundStars').hidden = true;
   spawnPoints(G.fighters.length).forEach(([x, z], i) => G.fighters[i].reset(x, Math.atan2(-x, -z), z));   // みんなステージの中心を向いて始まる
-  for (const p of G.projectiles) scene.remove(p.m);
+  for (const p of G.projectiles) dropProj(p);
   G.projectiles = [];
   G.phase = 'intro'; G.phaseT = 0; G.skillKO = false; G.pendingShatter = null;
-  announce(G.endless ? `${G.streak + 1}人目` : 'ROUND ' + G.round, 1.1);
-  if (G.endless) { const e = G.fighters[1]; toast(`VS ${G.builds[1].name}（CPU：${CPU_LV[e.cpuLv].name}${e.boost ? '+' + e.boost : ''}）`, 2200); }
+  clearHazards();
+  const fresh = G.endless && G.streak > 0 && G.streak % 10 === 0 && G.round === 1;   // 新しい階層の1人目
+  announce(fresh ? `第${stageNo(G.streak) + 1}階層` : G.endless ? `${G.streak + 1}人目` : 'ROUND ' + G.round, fresh ? 1.6 : 1.1);
+  if (G.endless) {
+    const e = G.fighters[1];
+    toast(`${fresh ? `🏯 第${stageNo(G.streak) + 1}階層「${STAGE.name}」${STAGE.note ? STAGE.note : ''}　` : ''}VS ${G.builds[1].name}（CPU：${CPU_LV[e.cpuLv].name}${e.boost ? '+' + e.boost : ''}）`, fresh ? 3600 : 2200);
+  }
   else if (G.round === 1 && !G.watch && !G.tut) toast(IS_TOUCH ? '攻撃長押し＝ため攻撃でガードを割る／ガード＋スティックで回避' : '攻撃長押し＝ため攻撃でガードを割る／ガード＋方向でステップ', 4500);
 }
 
+// ステージのしかけ：毒の沼（端にいると削られる）・雷雲の塔（予告の輪のあとに落雷）
+// 階層の敵の特殊な必殺技も同じしくみ：warn＝点滅する予告の輪（時間が来たら at）、zone＝しばらく効く場所（毎フレーム tick）、fx＝消えていく見た目だけ
+const BOLT = { warn: 1.1, r: 1.7, dmg: 8.6, knock: 7, up: 4 };   // dmg は無属性の +16% がかかって約10
+function clearHazards() { for (const h of G.hazards || []) dropHazard(h); G.hazards = []; G.boltT = STAGE.bolt ? 1.5 : 0; }
+function dropHazard(h) { scene.remove(h.m); h.m.traverse(o => { o.geometry?.dispose(); o.material?.dispose(); }); }
+const clampIn = (x, z, m) => { const r = Math.hypot(x, z), k = r > ARENA_R - m ? (ARENA_R - m) / r : 1; return [x * k, z * k]; };
+function warnAt(x, z, r, t, color, at, owner = null) {
+  const m = new THREE.Mesh(new THREE.RingGeometry(r - 0.18, r, 40), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.5, depthWrite: false, side: THREE.DoubleSide }));
+  m.rotation.x = -Math.PI / 2; m.position.set(x, 0.04, z); scene.add(m);
+  (G.hazards ??= []).push({ kind: 'warn', m, t, x, z, r, at, owner });
+}
+function zoneAt(x, z, r, t, color, tick, owner, spin = 0) {
+  const m = new THREE.Mesh(new THREE.CircleGeometry(r, 40), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.45, depthWrite: false, side: THREE.DoubleSide }));
+  m.rotation.x = -Math.PI / 2; m.position.set(x, 0.03, z); scene.add(m);
+  G.hazards.push({ kind: 'zone', m, t, x, z, r, tick, owner, spin });
+}
+function hazFx(m, t) { scene.add(m); G.hazards.push({ kind: 'fx', m, t, dur: t }); }
+// 輪の中の人（必殺技は使った人の敵だけ。ステージの落雷はみんな）
+const hazTargets = h => (h.owner ? h.owner.foes() : G.fighters).filter(f => !f.dead && !f.out && Math.hypot(f.pos.x - h.x, f.pos.z - h.z) <= h.r && f.pos.y < 2.5);
+function hazHit(h, dmg, knock, up, elem = 'none') {
+  for (const f of hazTargets(h)) {
+    const dx = f.pos.x - h.x, dz = f.pos.z - h.z, d = Math.hypot(dx, dz);
+    const dir = d > 0.01 ? new THREE.Vector3(dx / d, 0, dz / d) : new THREE.Vector3(Math.sin(f.yaw), 0, Math.cos(f.yaw)).negate();
+    // ガード・バリア・回避の無敵はいつもどおり効く。攻撃した人はなし（遠くの敵がバリアやジャストガードで押し返されたり止まったりしないように）
+    applyHit(null, f, dmg, knock, dir, elem, up, true);
+  }
+}
+function boltFx(x, z, color = 0xfff6a0) {
+  const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 30, 12, 1, true), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.9, depthWrite: false }));
+  beam.position.set(x, 15, z); hazFx(beam, 0.22);
+  burst(new THREE.Vector3(x, 0.3, z), 0xffe94a, 18, 7, 0.16, 6, 0.5);
+  sfx('big'); G.shake = Math.max(G.shake || 0, 0.25);
+}
+// 階層の敵の特殊な必殺技（SPECIALS）。予告の輪は、使った瞬間の相手の位置に出る（見てからよけられる）
+function castSpecial(f, opp) {
+  const S = SPECIALS[f.b.special], t = opp && !opp.dead ? opp : nearestFoe(f);
+  dmgNumber(f.center().setY(f.pos.y + 2.4 * f.b.size), `${S.icon} ${S.name}`, '#ffd23f');
+  if (!t) return;
+  switch (f.b.special) {
+    case 'icicle':   // 相手の位置と、動いている先に3本
+      for (let k = 0; k < 3; k++) {
+        const a = Math.random() * Math.PI * 2, d = k ? 1.3 + Math.random() * 0.8 : 0;
+        const [x, z] = clampIn(t.pos.x + t.vel.x * 0.35 * k + Math.cos(a) * d, t.pos.z + t.vel.z * 0.35 * k + Math.sin(a) * d, 0.6);
+        warnAt(x, z, 1.15, 0.95 + k * 0.25, 0x9ff0ff, h => {
+          const ice = new THREE.Mesh(new THREE.ConeGeometry(0.35, 1.8, 6), new THREE.MeshBasicMaterial({ color: 0xcff6ff, transparent: true, opacity: 0.9 }));
+          ice.rotation.x = Math.PI; ice.position.set(h.x, 0.9, h.z); hazFx(ice, 0.5);
+          burst(new THREE.Vector3(h.x, 0.3, h.z), 0xcff6ff, 14, 5, 0.14, 10, 0.5); sfx('shatter');
+          hazHit(h, 7, 3, 4, 'ice');
+        }, f);
+      }
+      break;
+    case 'meteor':   // 大きな輪のあとに隕石
+      warnAt(...clampIn(t.pos.x, t.pos.z, 1), 2.1, 1.25, 0xff6a2b, h => {
+        const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(0.9), new THREE.MeshBasicMaterial({ color: 0xff7a2b, transparent: true, opacity: 0.95 }));
+        rock.position.set(h.x, 0.6, h.z); hazFx(rock, 0.3);
+        ringFx(new THREE.Vector3(h.x, 0, h.z), 0xff6a2b, 2.6);
+        burst(new THREE.Vector3(h.x, 0.4, h.z), 0xff8a3d, 26, 9, 0.2, 14, 0.7); sfx('big'); G.shake = Math.max(G.shake, 0.4);
+        hazHit(h, 12, 9, 6, 'fire');
+      }, f);
+      break;
+    case 'thunder': {   // 自分から相手へ一列に3本（列からはずれればよけられる）
+      const dx = t.pos.x - f.pos.x, dz = t.pos.z - f.pos.z;
+      [0.45, 0.8, 1.15].forEach((k, i) => {
+        const [x, z] = clampIn(f.pos.x + dx * k, f.pos.z + dz * k, 0.6);
+        warnAt(x, z, 1.35, 0.75 + i * 0.22, 0xffe94a, h => { boltFx(h.x, h.z); hazHit(h, 7, 5, 5, 'thunder'); }, f);
+      });
+      break;
+    }
+    case 'swamp':   // 足もとに毒の水たまり（4秒）
+      warnAt(...clampIn(t.pos.x, t.pos.z, 1), 2.2, 0.7, 0x7dff3a, h => {
+        zoneAt(h.x, h.z, h.r, 4, 0x5adf2a, (z, dt) => {
+          for (const o of hazTargets(z)) if (o.grounded) { o.dot(5 * dt); o.status.slow = Math.max(o.status.slow, 0.3); if (Math.random() < dt * 6) burst(new THREE.Vector3(o.pos.x, 0.3, o.pos.z), 0x7dff3a, 2, 1.5, 0.12, -2, 0.5); }
+          if (Math.random() < dt * 10) burst(new THREE.Vector3(z.x + (Math.random() - 0.5) * z.r * 1.4, 0.1, z.z + (Math.random() - 0.5) * z.r * 1.4), 0xa6ff4a, 1, 1, 0.14, -3, 0.6);
+        }, f);
+      }, f);
+      break;
+    case 'gravity': {   // 吸いこむ穴（1.8秒。足の速さより弱いので走れば抜けられる）
+      const [x, z] = clampIn(t.pos.x * 0.6, t.pos.z * 0.6, 3.5);   // 穴はステージの内側寄り（場外へは引っぱらない）
+      warnAt(x, z, 3.2, 0.8, 0xb48aff, h => {
+        zoneAt(h.x, h.z, h.r, 1.8, 0x2a0f5e, (zn, dt) => {
+          for (const o of hazTargets(zn)) {
+            const ox = o.pos.x - zn.x, oz = o.pos.z - zn.z, d = Math.hypot(ox, oz);
+            if (d > 0.2) { o.pos.x -= ox / d * 2.4 * dt; o.pos.z -= oz / d * 2.4 * dt; }
+            if (d < 1) o.dot(6 * dt);
+          }
+          if (Math.random() < dt * 14) { const a = Math.random() * 6.3; burst(new THREE.Vector3(zn.x + Math.cos(a) * zn.r, 0.3, zn.z + Math.sin(a) * zn.r), 0xb48aff, 1, 2, 0.12, 0, 0.4); }
+        }, f, 3);
+      }, f);
+      break;
+    }
+  }
+}
+function updateHazards(dt) {
+  G.hazards ??= [];
+  if (G.phase !== 'fight') return;
+  if (STAGE.poison) for (const f of G.fighters) {
+    if (f.dead || f.out || !f.grounded || Math.hypot(f.pos.x, f.pos.z) < ARENA_R - POISON_W) continue;
+    f.dot(STAGE.poison * dt);
+    if (Math.random() < dt * 8) burst(new THREE.Vector3(f.pos.x, 0.3, f.pos.z), 0x7dff3a, 2, 1.5, 0.12, -2, 0.5);
+  }
+  if (STAGE.bolt) {
+    G.boltT -= dt;
+    if (G.boltT <= 0) {
+      G.boltT = STAGE.bolt * (0.7 + Math.random() * 0.6);
+      // 生きている誰かの足もとをねらう（少しずらす）
+      const t = pick(G.fighters.filter(f => !f.dead && !f.out)), a = Math.random() * Math.PI * 2, d = Math.random() * 1.2;
+      if (t) warnAt(...clampIn(t.pos.x + Math.cos(a) * d, t.pos.z + Math.sin(a) * d, 0.5), BOLT.r, BOLT.warn, 0xffe94a, h => { boltFx(h.x, h.z); hazHit(h, BOLT.dmg, BOLT.knock, BOLT.up); });
+    }
+  }
+  for (const h of [...G.hazards]) {
+    h.t -= dt;
+    if (h.kind === 'warn') {
+      h.m.material.opacity = 0.35 + 0.4 * Math.abs(Math.sin(h.t * 14));   // 点滅して知らせる
+      if (h.t <= 0) h.at(h);
+    } else if (h.kind === 'zone') { h.tick(h, dt); h.m.rotation.z += h.spin * dt; h.m.material.opacity = 0.45 * Math.min(1, h.t * 3); }
+    else h.m.material.opacity = Math.max(0, h.t / h.dur);
+  }
+  for (const h of G.hazards) if (h.t <= 0) dropHazard(h);
+  G.hazards = G.hazards.filter(h => h.t > 0);
+}
 function updateBattle(dt) {
   if (announceTimer > 0) { announceTimer -= dt; if (announceTimer <= 0) announceEl.innerHTML = ''; }
   if (G.paused) return;
@@ -2603,6 +3004,7 @@ function updateBattle(dt) {
     }
   }
   updateProjectiles(dt);
+  updateHazards(dt);
 
   if (G.phase === 'fight') {
     const down = fs.filter(f => f.out || f.dead);
@@ -2683,12 +3085,12 @@ function togglePause() {
     const open = !$('pause').classList.contains('on');
     $('pauseTitle').textContent = open ? '対戦中（止まりません）' : 'ポーズ';
     $('quitBtn').textContent = open ? '対戦をやめる' : 'タイトルへ';
-    $('btnLayoutBtn').hidden = true;
+    $('btnLayoutBtn').hidden = true; $('modBtn2').hidden = false;
     show(open ? 'pause' : 'hud', true);
     return;
   }
   G.paused = !G.paused;
-  $('btnLayoutBtn').hidden = false;
+  $('btnLayoutBtn').hidden = false; $('modBtn2').hidden = true;
   show(G.paused ? 'pause' : 'hud', true);
 }
 
@@ -3167,15 +3569,229 @@ function buildRuleSel() {
 }
 buildRuleSel();
 
+// ===== 名前の伏せ字・通報・ブロック（App Store ガイドライン 1.2：オンラインで知らない人の名前が見えるため） =====
+const LS_PID = 'battlephase_pid_v1', LS_BLOCK = 'battlephase_block_v1', LS_ONRULES = 'battlephase_onrules_v1';
+// 端末ごとのランダム番号（個人とは結び付かない）。ブロック・通報・利用停止の目印に使う
+const MY_PID = (() => {
+  const make = () => [...crypto.getRandomValues(new Uint8Array(8))].map(x => x.toString(16).padStart(2, '0')).join('');
+  try { let p = localStorage.getItem(LS_PID); if (!/^[0-9a-f]{16}$/.test(p || '')) { p = make(); localStorage.setItem(LS_PID, p); } return p; } catch { return make(); }
+})();
+const okPid = p => typeof p === 'string' && /^[0-9a-f]{16}$/.test(p) ? p : '';
+// 名前に入っていたら「＊」にすることば（ひらがな・小文字にそろえてから探す。カタカナ・全角・あいだの記号や空白も見のがさない）
+const NG_WORDS = ['しね', 'ころす', 'ころせ', '殺', '死ね', '氏ね', 'ちんこ', 'ちんぽ', 'ちんちん', 'まんこ', 'せっくす', 'れいぷ', '強姦', 'ぽるの', 'おっぱい', 'ちくび',
+  'きちがい', '気違い', '基地外', 'がいじ', 'かたわ', 'つんぼ', 'めくら', '売春', 'ひとらー', 'ナチス',
+  'fuck', 'shit', 'bitch', 'dick', 'pussy', 'cunt', 'nigger', 'nigga', 'faggot', 'porn', 'sex', 'penis', 'vagina', 'whore', 'slut', 'hitler', 'nazi',
+  // 2026-10-21 追加（下ネタ・悪口）。ほかの言葉の一部になりやすいもの（せいし→青春、かす→カスタード、ばか→バカンス、cum→cucumber など）は入れない
+  'うんこ', 'うんち', 'きんたま', 'おなにー', 'せっくる', 'ふぇら', 'やりまん', 'やりちん', 'ぱいずり', 'てまん', 'ちんげ', 'まんげ', 'あなる', 'ぼっき', 'ざーめん', 'おめこ',
+  'えろ', 'ぬーど', 'へんたい', 'どうてい', 'しょじょ', 'ちかん', 'くそ', 'ぶす', 'でぶ', 'きもい', 'うざい',
+  '巨乳', '爆乳', '乳首', '陰毛', '陰茎', '勃起', '射精', '精子', '膣', '童貞', '処女', '変態', '淫', '痴漢', '馬鹿', '阿呆', '糞',
+  'dildo', 'tits', 'boob', 'nude', 'asshole', 'bastard', 'retard', 'rapist', 'horny'];
+// ↑ server/worker.js の NG_WORDS と同じにしておく（サーバーでも同じ言葉を弾く）
+const ngNorm = c => c.normalize('NFKC').toLowerCase().replace(/[ァ-ヶ]/g, k => String.fromCharCode(k.charCodeAt(0) - 0x60));
+const NG_SET = NG_WORDS.map(w => [...w].map(ngNorm).join(''));
+function maskName(name) {
+  const chars = [...String(name)], at = [];
+  let norm = '';
+  chars.forEach((c, i) => {
+    const n = ngNorm(c);
+    if (/^[\s\p{P}\p{S}ー〜]+$/u.test(n)) return;   // 「し・ね」「し ね」なども見つける
+    for (const x of n) { norm += x; at.push(i); }
+  });
+  const hit = new Set();
+  for (const w of NG_SET) for (let k = norm.indexOf(w); k >= 0; k = norm.indexOf(w, k + 1)) for (let j = k; j < k + w.length; j++) hit.add(at[j]);
+  return hit.size ? chars.map((c, i) => hit.has(i) ? '＊' : c).join('') : name;
+}
+// オンラインで受け取ったキャラ：名前は伏せ字に、手書きの絵は使わない（パーツの見た目）
+function netBuildIn(raw, seat) {
+  const b = sanitize(raw);
+  NET.rawNames[seat] = b.name;
+  b.name = maskName(b.name); b.drawing = ''; b.bodyMode = 'parts';
+  return b;
+}
+function loadBlocks() { try { const a = JSON.parse(localStorage.getItem(LS_BLOCK) || '[]'); return Array.isArray(a) ? a.filter(b => okPid(b?.pid)) : []; } catch { return []; } }
+function saveBlocks(a) { try { localStorage.setItem(LS_BLOCK, JSON.stringify(a.slice(-200))); } catch {} }
+const isBlocked = pid => !!pid && loadBlocks().some(b => b.pid === pid);
+function addBlock(pid, name) { if (!okPid(pid) || isBlocked(pid)) return; saveBlocks([...loadBlocks(), { pid, name: String(name).slice(0, 10), at: Date.now() }]); }
+const escH = t => String(t).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`);
+function sheet(html) { const box = $('sheetBox'); box.innerHTML = html; $('sheet').hidden = false; box.scrollTop = 0; return box; }
+function closeSheet() { $('sheet').hidden = true; }
+const agreedRules = () => { try { return localStorage.getItem(LS_ONRULES) === '1'; } catch { return true; } };
+// オンライン対戦のルール（はじめて開いたときに同意してもらう）
+function onlineRules(agree) {
+  const box = sheet(`<b>📜 オンライン対戦のルール</b><p>みんなが楽しく遊べるように、次のことを守ってね。</p>
+    <ul><li>ほかの人がいやな気持ちになる名前（悪口・下品なことば・差別など）をつけない</li>
+    <li>わざと試合をこわす・しつこくつきまとうなど、迷惑なことをしない</li>
+    <li>いやな名前や行為を見つけたら「🚩 通報・ブロック」から知らせてね。ブロックした人とは、もう同じ部屋で遊ばなくなります</li>
+    <li>ルールを守らない人は、運営が確認したうえで、オンライン対戦を使えなくします</li></ul>
+    <p style="font-size:12px;opacity:.8">名前に良くないことばが入っていると、自動で「＊」にかくします。</p>
+    <div class="row">${agree ? '<button class="tool" data-x="no">もどる</button><button class="tool sel" data-x="ok">同意してはじめる</button>' : '<button class="tool" data-x="no">とじる</button>'}</div>`);
+  box.querySelector('[data-x=no]').onclick = closeSheet;
+  const ok = box.querySelector('[data-x=ok]');
+  if (ok) ok.onclick = () => { try { localStorage.setItem(LS_ONRULES, '1'); } catch {} track('online_rules_agree'); closeSheet(); agree(); };
+}
+// いっしょに対戦しているほかの人（CPU はのぞく）
+function modTargets() {
+  return (G.humans || []).filter(i => i !== NET.me).map(i => ({ seat: i, pid: NET.seatPid[i] || '', name: G.fighters[i]?.b.name || G.builds?.[i]?.name || 'なかま',
+    raw: NET.rawNames[i] ?? '', color: PCSS[teamOf(i)] }));
+}
+function openMod() {
+  const list = modTargets();
+  const box = sheet(`<b>🚩 通報・ブロック</b><p>いやな名前や迷惑な行為があったら知らせてね。ブロックすると、その人とはもう同じ部屋で遊びません。</p>
+    ${list.map((t, k) => `<div class="who" style="border-color:${t.color}"><span class="nm">${escH(t.name)}</span><button class="tool" data-r="${k}">🚩 通報</button><button class="tool red" data-b="${k}">🚫 ブロック</button></div>`).join('') || '<p>いま対戦しているほかの人はいません</p>'}
+    <div class="row"><button class="tool" data-x="no">とじる</button></div>`);
+  box.querySelector('[data-x=no]').onclick = closeSheet;
+  box.querySelectorAll('[data-r]').forEach(b => b.onclick = () => openReport(list[b.dataset.r]));
+  box.querySelectorAll('[data-b]').forEach(b => b.onclick = () => confirmBlock(list[b.dataset.b]));
+}
+const REPORT_REASONS = [['name', 'いやな名前'], ['behavior', '迷惑な行為'], ['other', 'その他']];
+function openReport(t) {
+  let reason = 'name';
+  const box = sheet(`<b>🚩 「${escH(t.name)}」を通報</b>
+    <div class="reasons">${REPORT_REASONS.map(([k, v]) => `<button class="tool${k === reason ? ' sel' : ''}" data-k="${k}">${v}</button>`).join('')}</div>
+    <textarea maxlength="200" placeholder="くわしく（書かなくてもOK）"></textarea>
+    <label><input type="checkbox" checked> この人をブロックする</label>
+    <p style="font-size:12px;opacity:.8">通報は運営にとどき、内容を確認して対応します（ルールを守らない人はオンライン対戦を使えなくします）。</p>
+    <div class="row"><button class="tool" data-x="no">やめる</button><button class="tool red" data-x="ok">通報する</button></div>`);
+  box.querySelectorAll('[data-k]').forEach(b => b.onclick = () => { reason = b.dataset.k; box.querySelectorAll('[data-k]').forEach(x => x.classList.toggle('sel', x === b)); });
+  box.querySelector('[data-x=no]').onclick = t.back || openMod;
+  const send = box.querySelector('[data-x=ok]');
+  send.onclick = async () => {
+    const note = box.querySelector('textarea').value, blk = box.querySelector('input[type=checkbox]').checked;
+    send.disabled = true;
+    let ok = false;
+    try {
+      const r = await fetch(RELAY + '/report', { method: 'POST', body: JSON.stringify({ reason, note, name: t.raw || t.name, pid: t.pid, rid: t.rid, by: MY_PID, room: t.rid ? 'rank' : NET.code, platform: PLATFORM }) });
+      ok = r.ok;
+    } catch { /* 送れなかったら下で知らせる */ }
+    track(t.rid ? 'rank_report' : 'online_report', { reason, sent: ok });
+    closeSheet();
+    toast(ok ? '通報しました。知らせてくれてありがとう！' : '通報を送れませんでした。ネットを確かめるか、サポートのメールで知らせてね', 3200);
+    if (blk) setTimeout(() => (t.block || doBlock)(t), ok ? 1200 : 3200);
+  };
+}
+function confirmBlock(t) {
+  const host = NET.role === 'host';
+  const box = sheet(`<b>🚫 「${escH(t.name)}」をブロック</b>
+    <p>${host ? 'この人を部屋から出して（かわりに CPU が戦います）' : 'この対戦からはなれて'}、これからはこの人と同じ部屋で遊ばなくなります。オンライン対戦の画面の「ブロック中」からいつでも解除できます。</p>
+    <div class="row"><button class="tool" data-x="no">やめる</button><button class="tool red" data-x="ok">ブロックする</button></div>`);
+  box.querySelector('[data-x=no]').onclick = openMod;
+  box.querySelector('[data-x=ok]').onclick = () => { closeSheet(); doBlock(t); };
+}
+// ブロック：ホストならその人を部屋から出す。ゲストなら自分がはなれる
+function doBlock(t) {
+  if (!NET.role) return;
+  addBlock(t.pid, t.name);
+  track('online_block');
+  if (NET.role === 'host') {
+    const slot = Object.keys(NET.seatOf).find(s => NET.seatOf[s] === t.seat);
+    if (slot !== undefined) netSend({ t: '_kick', slot: +slot });
+    toast(`${t.name} をブロックして、部屋から出しました`, 2600);
+    return;
+  }
+  toast(`${t.name} をブロックしました`, 2600);
+  G.paused = false; netClose(); goTitle();
+}
+function openBlocked() {
+  const list = loadBlocks();
+  const box = sheet(`<b>🚫 ブロック中の人</b>
+    ${list.map((b, k) => `<div class="who" style="border-color:#888"><span class="nm">${escH(maskName(b.name))}</span><button class="tool" data-u="${k}">解除</button></div>`).join('') || '<p>いません</p>'}
+    <div class="row"><button class="tool" data-x="no">とじる</button></div>`);
+  box.querySelector('[data-x=no]').onclick = closeSheet;
+  box.querySelectorAll('[data-u]').forEach(b => b.onclick = () => { saveBlocks(list.filter((_, k) => k !== +b.dataset.u)); refreshBlockedBtn(); openBlocked(); });
+}
+function refreshBlockedBtn() { const n = loadBlocks().length; $('onBlocked').hidden = !n; $('onBlocked').textContent = `🚫 ブロック中（${n}）`; }
+$('modBtn').onclick = $('modBtn2').onclick = () => { sfx('select'); openMod(); };
+$('onBlocked').onclick = () => { sfx('select'); openBlocked(); };
+$('onRulesBtn').onclick = () => { sfx('select'); onlineRules(null); };
+
+// ===== 勝ち抜きの連勝ランキング（中継サーバーに保存。全期間と今週。名前を登録した人だけのる） =====
+const LS_RANKNAME = 'battlephase_rankname_v1', LS_WEEKBEST = 'battlephase_weekbest_v1';
+// 週は日本時間の月曜はじまり（サーバーの weekId と同じ）
+function weekId(t = Date.now()) { const d = new Date(t + 9 * 3600e3); d.setUTCDate(d.getUTCDate() - (d.getUTCDay() + 6) % 7); return d.toISOString().slice(0, 10); }
+const rankName = () => { try { return localStorage.getItem(LS_RANKNAME) || ''; } catch { return ''; } };
+function weekBest() { try { const w = JSON.parse(localStorage.getItem(LS_WEEKBEST) || '{}'); return w.w === weekId() ? w.n | 0 : 0; } catch { return 0; } }
+function noteWeekBest(n) { if (n > weekBest()) try { localStorage.setItem(LS_WEEKBEST, JSON.stringify({ w: weekId(), n })); } catch {} }
+// 記録を送る（サーバーは前の記録と比べて大きいほうを残す）。返り値は HTTP の番号（送れなかったら 0）
+//   409＝ほかの人が使っている名前（または運営が消した名前）、400＝使えない名前。登録してある名前でそうなったら、登録を消して名前を決めなおしてもらう
+async function sendScore(name = rankName()) {
+  if (!name || IS_WEB) return 0;   // Web 版は記録を送らない（見るだけ）
+  let st = 0;
+  try { st = (await fetch(RELAY + '/score', { method: 'POST', body: JSON.stringify({ pid: MY_PID, name, all: loadNum(LS_STREAK, 0), week: weekBest() }) })).status; } catch { return 0; }
+  if ((st === 409 || st === 400) && name === rankName()) try { localStorage.removeItem(LS_RANKNAME); } catch {}
+  return st;
+}
+let rankTab = 'all';
+async function openRanking(edit = false) {
+  const my = openRanking.n = (openRanking.n || 0) + 1;
+  const box = sheet(`<b>🏅 連勝ランキング</b><p style="font-size:12px;opacity:.8">勝ち抜きモードで何連勝したか。今週は月曜にリセット</p>
+    <div class="reasons"><button class="tool${rankTab === 'all' ? ' sel' : ''}" data-t="all">全期間</button><button class="tool${rankTab === 'week' ? ' sel' : ''}" data-t="week">今週</button></div>
+    <div class="rk-list"><p>読みこみ中…</p></div>
+    <div class="rk-me"></div>
+    <div class="row"><button class="tool" data-x="no">とじる</button></div>`);
+  box.querySelector('[data-x=no]').onclick = closeSheet;
+  box.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { sfx('select'); rankTab = b.dataset.t; openRanking(); });
+  const name = rankName(), me = box.querySelector('.rk-me');
+  if (IS_WEB) me.innerHTML = `<p>ランキングに記録をのせられるのは、アプリ版だけです。${APP_STORE_URL ? `<a href="${APP_STORE_URL}" target="_blank" style="color:var(--gold)">📱 アプリを入れる</a>` : 'App Store で「バトルフェーズ」を探してね'}</p>`;
+  // 名前の登録・変更
+  else if (!name || edit) {
+    me.innerHTML = `<p>${name ? '新しい名前を入れてね' : `名前を登録すると、あなたの記録もランキングにのります（自己ベスト ${loadNum(LS_STREAK, 0)}連勝）`}</p>
+      <div class="row"><input type="text" maxlength="10" placeholder="ランキングの名前（10文字まで）" value="${escH(name)}"><button class="tool sel" data-x="reg">${name ? '変える' : '登録'}</button></div>
+      <p style="font-size:12px;opacity:.8">名前はほかの人にも見えます。悪口・下品なことばなど、ほかの人がいやな気持ちになる名前は使えません。ルールを守らない名前は、運営が消したり、ランキングやオンライン対戦を使えなくしたりします。</p>`;
+    me.querySelector('[data-x=reg]').onclick = async () => {
+      const v = me.querySelector('input').value.trim();
+      if (!v) { toast('名前を入れてね'); return; }
+      if (maskName(v) !== v) { toast('その名前は使えません。ほかの名前にしてね', 2600); return; }
+      // 先にサーバーで確かめてから登録する（同じ名前・使えない名前はここで分かる）
+      const st = await sendScore(v);
+      if (st === 409) { toast('その名前はもう使われています。ほかの名前にしてね', 2800); return; }
+      if (st === 400) { toast('その名前は使えません。ほかの名前にしてね', 2600); return; }
+      if (st === 403) { toast('ルールを守っていないという通報があったため、ランキングは使えません', 3200); return; }
+      if (st !== 200) { toast('登録できませんでした。ネットにつながってから、もう一度ためしてね', 3000); return; }
+      try { localStorage.setItem(LS_RANKNAME, v); } catch {}
+      track(name ? 'rank_rename' : 'rank_register');
+      toast(name ? '名前を変えました' : 'ランキングに登録しました！');
+      if (my === openRanking.n && !$('sheet').hidden) openRanking();
+    };
+  } else {
+    me.innerHTML = `<div class="row"><p style="flex:1">あなた：<b>${escH(name)}</b> <span class="rk-pos"></span></p><button class="tool" data-x="edit">名前を変える</button></div>`;
+    me.querySelector('[data-x=edit]').onclick = () => { sfx('select'); openRanking(true); };
+  }
+  if (name && !edit && !IS_WEB) {   // 前に送れなかった記録もここで送る
+    const st = await sendScore();
+    if ((st === 409 || st === 400) && my === openRanking.n && !$('sheet').hidden) { toast('その名前はもう使えなくなりました。名前を登録しなおしてね', 3200); openRanking(); return; }
+  }
+  let d = null;
+  try { const r = await fetch(`${RELAY}/rank?p=${rankTab}&pid=${MY_PID}`); if (r.ok) d = await r.json(); } catch { /* 下で知らせる */ }
+  if (my !== openRanking.n || $('sheet').hidden) return;   // とじた・切りかえた・通報の画面にうつった
+  const list = box.querySelector('.rk-list');
+  if (!d) { list.innerHTML = '<p>ランキングを読みこめませんでした。ネットを確かめてね</p>'; return; }
+  const pos = box.querySelector('.rk-pos');
+  if (pos && !IS_WEB) pos.textContent = d.me ? `… ${d.me.rank}位（${d.me.n}連勝）` : '… まだ記録なし（1勝するとのります）';
+  // 同じ連勝数は同じ順位。ブロックした人は出さない
+  let rank = 0;
+  const rows = d.top.map((x, i) => ({ ...x, rank: i && x.n === d.top[i - 1].n ? rank : (rank = i + 1) })).filter(x => x.id === d.myId || !isBlocked(x.id));
+  list.innerHTML = rows.map((x, k) => `<div class="rk${x.id === d.myId ? ' me' : ''}"><span class="no">${['🥇', '🥈', '🥉'][x.rank - 1] || x.rank}</span><span class="nm">${escH(maskName(x.name))}</span><span class="n">${x.n}連勝</span>${x.id === d.myId ? '' : `<button class="tool" data-r="${k}" aria-label="通報">🚩</button>`}</div>`).join('')
+    || '<p>まだ記録がありません。最初の1人になろう！</p>';
+  list.querySelectorAll('[data-r]').forEach(b => b.onclick = () => {
+    const x = rows[b.dataset.r];
+    openReport({ name: maskName(x.name), raw: x.name, rid: x.id, pid: '', back: () => openRanking(),
+      block: () => { addBlock(x.id, x.name); toast(`${maskName(x.name)} をブロックしました（ランキングに出なくなります）`, 2600); openRanking(); } });
+  });
+}
+$('rankGo').onclick = $('rankBtn').onclick = () => { sfx('select'); track('rank_open'); openRanking(); };
+
 // ===== オンライン対戦 =====
 const netRec = () => NET.role === 'host' && !NET.mute && (mode === 'battle' || mode === 'result');
 function netSend(msg) { try { if (NET.ws && NET.ws.readyState === 1) NET.ws.send(JSON.stringify(msg)); } catch { /* 切れていたら送らない */ } }
 // 中継サーバー（Cloudflare。server/worker.js）。パソコンで開発しているときは手元のサーバー（npm run relay）
 const RELAY = PLATFORM === 'dev' ? `http://${location.hostname}:8788` : 'https://battlephase-relay.battlephase.workers.dev';
-const NET_ERR = { notfound: 'その部屋が見つからなかったよ。コードを確かめてね', full: 'その部屋はもう満員だよ', playing: 'その部屋は試合中だよ', taken: 'もう一度「部屋を作る」を押してね' };
+const NET_ERR = { notfound: 'その部屋が見つからなかったよ。コードを確かめてね', full: 'その部屋はもう満員だよ', playing: 'その部屋は試合中だよ', taken: 'もう一度「部屋を作る」を押してね',
+                  banned: 'ルールを守っていないという通報があったため、オンライン対戦は使えません。くわしくはサポートにお問い合わせください' };
 function onStatus(t) { $('onStatus').textContent = t; }
 function openOnline() {
+  if (!agreedRules()) { onlineRules(openOnline); return; }
   netClose();
+  refreshBlockedBtn();
   G.watch = false; G.endless = false; G.tut = null;
   $('onMenu').hidden = false; $('onHost').hidden = true; $('onJoin').hidden = true; $('onLobby').hidden = true;
   onStatus('部屋を作るか、友達から聞いた4ケタのコードで部屋に入ってね');
@@ -3187,26 +3803,33 @@ function netClose() {
   const ws = NET.ws; NET.ws = null;
   try { ws && ws.close(); } catch {}
   clearInterval(NET.ping);
-  for (const m of NET.proj.values()) scene.remove(m);
-  Object.assign(NET, { role: null, me: 0, slot: 0, slots: [], seatOf: {}, phase: null, ws: null, code: null, builds: [], again: {}, snap: null, remote: {}, edges: {}, rx: {},
+  for (const m of NET.proj.values()) { scene.remove(m); disposeDeep(m); }
+  Object.assign(NET, { role: null, me: 0, slot: 0, slots: [], seatOf: {}, pids: {}, seatPid: {}, rawNames: {}, phase: null, ws: null, code: null, builds: [], again: {}, snap: null, remote: {}, edges: {}, rx: {},
                        events: [], sendT: 0, held: {} });
   NET.proj = new Map();
   if (was) G.vsCPU = false;
 }
 // 部屋につなぐ（create のときは新しく作る）。つながったあとのやりとりは netOnData
 function netConnect(code, create) {
-  const ws = new WebSocket(RELAY.replace(/^http/, 'ws') + `/ws?room=${code}${create ? '&create=1' : ''}`);
+  const ws = new WebSocket(RELAY.replace(/^http/, 'ws') + `/ws?room=${code}${create ? '&create=1' : ''}&pid=${MY_PID}`);
   NET.ws = ws; NET.code = code;
   let ok = false;
   ws.onmessage = e => {
     if (ws !== NET.ws) return;
     let m; try { m = JSON.parse(e.data); } catch { return; }
     NET.lastRx = performance.now();
-    if (m.t === '_error') { ok = true; onStatus(NET_ERR[m.reason] || '通信エラー：' + m.reason); NET.ws = null; return; }
+    if (m.t === '_error') {
+      ok = true; NET.ws = null;
+      if (create) { $('onHost').hidden = true; $('onMenu').hidden = false; }   // 「部屋のコード ----」を残さない
+      onStatus(NET_ERR[m.reason] || '通信エラー：' + m.reason);
+      return;
+    }
     if (m.t === '_welcome') {
       ok = true;
       clearInterval(NET.ping); NET.ping = setInterval(() => netSend({ t: '_p' }), 20000);   // 何も送らない時間が続いても切られないように
       NET.role = m.host ? 'host' : 'guest'; NET.slot = NET.me = m.slot; NET.slots = m.slots; NET.phase = 'lobby';
+      NET.pids = { [m.slot]: MY_PID };
+      if (!m.host) netSend({ t: 'hi', pid: MY_PID });   // ホストに自分の番号を知らせる（ブロックの目印）
       G.vsCPU = true;   // 自分の操作はタッチ・キーボードの1人分
       if (m.host) G.rule = 'duel';
       track('online_connected', { role: NET.role });
@@ -3217,6 +3840,7 @@ function netConnect(code, create) {
     if (m.t === '_join') { NET.slots = m.slots; netJoined(m.slot); return; }
     if (m.t === '_leave') { NET.slots = m.slots; netLeft(m.slot); return; }
     if (m.t === '_closed') { netLost('部屋を作った人が抜けたので、終わりました'); return; }
+    if (m.t === '_kicked') { netLost('この部屋からはなれました'); return; }
     netOnData(m);
   };
   ws.onclose = () => {
@@ -3226,6 +3850,7 @@ function netConnect(code, create) {
   };
 }
 function netLost(msg = '接続が切れました') {
+  closeSheet();
   if (!NET.role) { onStatus('通信が切れました。もどってやり直してね'); return; }
   toast(msg, 3000); netClose(); goTitle();
 }
@@ -3245,7 +3870,7 @@ function renderLobby() {
     const b = document.createElement('button');
     b.className = 'opt' + (key === G.rule ? ' sel' : ''); b.textContent = key === 'ffa' ? 'バトロワ' : r.name;
     b.disabled = !host || k > r.n;
-    b.onclick = () => { sfx('select'); G.rule = key; netSend({ t: 'lobby', rule: key }); renderLobby(); };
+    b.onclick = () => { sfx('select'); G.rule = key; netLobby(); renderLobby(); };
     box.appendChild(b);
   }
   $('onStart').hidden = !host; $('onStart').disabled = k < 2;
@@ -3255,13 +3880,28 @@ function renderLobby() {
 function netJoined(slot) {
   if (NET.role !== 'host') { renderLobby(); return; }
   if (NET.slots.length > RULES[G.rule].n) G.rule = 'ffa';   // 1対1に3人目が来たらバトルロイヤルへ
-  netSend({ t: 'lobby', rule: G.rule });
+  netLobby();
   sfx('select'); renderLobby();
+}
+const netLobby = () => netSend({ t: 'lobby', rule: G.rule, pids: NET.pids });
+// ホスト：入ってきた人の番号。ブロックしている人なら部屋から出す
+function netHi(slot, pid) {
+  if (NET.role !== 'host' || slot === undefined) return;
+  pid = okPid(pid);
+  if (isBlocked(pid)) { netSend({ t: '_kick', slot }); return; }
+  NET.pids[slot] = pid;
+  if (NET.phase === 'lobby') netLobby();
+}
+// ゲスト：ブロックしている人が部屋にいたらはなれる
+function netCheckBlocked(pids) {
+  if (!Object.values(pids || {}).some(p => p !== MY_PID && isBlocked(okPid(p)))) return false;
+  netLost('ブロックしている人がいる部屋だったので、はなれました');
+  return true;
 }
 // だれかが抜けた：待合室なら並べ直し、試合中ならその席は CPU が引きつぐ
 function netLeft(slot) {
   const seat = NET.seatOf[slot];
-  delete NET.seatOf[slot];
+  delete NET.seatOf[slot]; delete NET.pids[slot];
   if (NET.phase === 'lobby') { if (NET.role === 'host' && NET.slots.length < 2) {} renderLobby(); return; }
   if (seat === undefined) return;
   G.humans = G.humans.filter(i => i !== seat);
@@ -3297,8 +3937,9 @@ function netGo() {
   if (NET.role !== 'host' || NET.slots.length < 2) return;
   NET.seatOf = Object.fromEntries([...NET.slots].sort((a, b) => a - b).map((s, i) => [s, i]));
   G.humans = Object.values(NET.seatOf);
+  NET.seatPid = Object.fromEntries(Object.entries(NET.seatOf).map(([s, i]) => [i, NET.pids[s] || '']));
   netSend({ t: '_lock' });
-  netSend({ t: 'go', rule: G.rule, seats: NET.seatOf });
+  netSend({ t: 'go', rule: G.rule, seats: NET.seatOf, pids: NET.seatPid });
   netEnterCreate();
 }
 function netEnterCreate() {
@@ -3354,7 +3995,7 @@ function netStalled() {
 }
 function netStartBattle() {
   NET.lastRx = performance.now(); NET.rx = Object.fromEntries(G.humans.map(i => [i, performance.now()]));
-  for (const m of NET.proj.values()) scene.remove(m);
+  for (const m of NET.proj.values()) { scene.remove(m); disposeDeep(m); }
   NET.proj = new Map(); NET.snap = null; NET.remote = {}; NET.edges = {}; NET.events = [];
   startBattle();
   const t = teamOf(NET.me);
@@ -3363,12 +4004,21 @@ function netStartBattle() {
 function netOnData(m) {
   if (!m || typeof m !== 'object') return;
   const host = NET.role === 'host', from = host ? NET.seatOf[m.from] : undefined;
+  if (host && m.t === 'hi') { netHi(m.from, m.pid); return; }
   if (host && m.from !== undefined && from === undefined && m.t !== '_p') return;   // 締め切ったあとの知らない人
-  if (m.t === 'lobby' && !host) { G.rule = m.rule; renderLobby(); }
-  else if (m.t === 'go' && !host) { G.rule = m.rule; NET.seatOf = m.seats; G.humans = Object.values(m.seats); netEnterCreate(); }
+  if (m.t === 'lobby' && !host) { G.rule = m.rule; NET.pids = m.pids || {}; if (!netCheckBlocked(NET.pids)) renderLobby(); }
+  else if (m.t === 'go' && !host) {
+    NET.seatPid = Object.fromEntries(Object.entries(m.pids || {}).map(([i, p]) => [i, okPid(p)]));
+    if (netCheckBlocked(NET.seatPid)) return;
+    G.rule = m.rule; NET.seatOf = m.seats; G.humans = Object.values(m.seats); netEnterCreate();
+  }
   else if (m.t === 'humans' && !host) { G.humans = m.humans; if (mode === 'battle' || mode === 'result') buildHud(); }
-  else if (m.t === 'build' && host) { NET.builds[from] = sanitize(m.b); netTryStart(); }
-  else if (m.t === 'start' && !host) { G.rule = m.rule; G.humans = m.humans; G.builds = m.builds.map(sanitize); NET.phase = 'play'; netStartBattle(); }
+  else if (m.t === 'build' && host) { NET.builds[from] = netBuildIn(m.b, from); netTryStart(); }
+  else if (m.t === 'start' && !host) {
+    G.rule = m.rule; G.humans = m.humans; NET.phase = 'play';
+    G.builds = m.builds.map((b, i) => i === NET.me ? sanitize(b) : m.humans.includes(i) ? netBuildIn(b, i) : sanitize(b));
+    netStartBattle();
+  }
   else if (m.t === 'i' && host) {
     NET.remote[from] = m; NET.rx[from] = performance.now();
     const e = NET.edges[from] ??= {};
@@ -3449,7 +4099,7 @@ function netGuestUpdate(dt) {
       }
       m.position.set(x, y, z);
     }
-    for (const [id, m] of NET.proj) if (!alive.has(id)) { scene.remove(m); NET.proj.delete(id); }
+    for (const [id, m] of NET.proj) if (!alive.has(id)) { scene.remove(m); disposeDeep(m); NET.proj.delete(id); }
     // 演出を再生
     const V = a => new THREE.Vector3(a[0], a[1], a[2]);
     for (const e of sn.ev || []) {
@@ -3537,7 +4187,7 @@ function tutReset() {
   const [a, b] = G.fighters;
   a.reset(-3, Math.PI / 2); b.reset(3, -Math.PI / 2);
   if (TUTORIAL[G.tut.step].key === 'skill') a.sp = 1;
-  for (const p of G.projectiles) scene.remove(p.m);
+  for (const p of G.projectiles) dropProj(p);
   G.projectiles = [];
   G.phase = 'fight';
 }
@@ -3558,16 +4208,16 @@ function tutDummyInput(f, o, dt) {
 function endTutorial() { G.tut = null; $('tut').hidden = true; }
 
 // ===== 広告（アプリだけ。Google AdMob） =====
-// 試合が終わるたびに全画面の広告、勝ち抜きで負けたら「広告を見て復活」（1回の挑戦で1回だけ）。
+// 試合が終わるたびに全画面の広告、勝ち抜きで負けたら「広告を見て復活」（1回の挑戦で REVIVE_MAX 回まで）。
 // ブラウザで ?adtest を付けると、見せかけの広告（3秒）で流れを確かめられる。
 const ADS = {
-  enabled: false,   // 広告を出すか（2026-10-12 ユーザー：TestFlight ではまだ入れない。出すときは true に）
+  enabled: true,   // 広告を出すか（1.0 は広告なしで審査。1.1 から本番の広告を出す）
   plugin: window.Capacitor?.isNativePlatform?.() ? window.Capacitor.Plugins?.AdMob : null,
   fake: location.search.includes('adtest'),
   test: false,   // true にすると Google のテスト用広告（自分の端末で確かめるとき。本番の広告を自分で押すと止められることがある）
-  real: { inter: 'ca-app-pub-9851397835873240/3290735011', reward: 'ca-app-pub-9851397835873240/2048796373' },   // AdMob（soratoki11703@gmail.com）「バトルフェーズ」の 試合後／復活
+  real: { inter: 'ca-app-pub-9851397835873240/3290735011', reward: 'ca-app-pub-9851397835873240/2048796373' },   // AdMob「バトルフェーズ」の 試合後／復活
   testIds: { inter: 'ca-app-pub-3940256099942544/4411468910', reward: 'ca-app-pub-3940256099942544/1712485313' },
-  every: 1,   // 何試合ごとに試合後の広告を出すか（多すぎると感じたら 2 などに）
+  every: 2,   // 何試合ごとに試合後の広告を出すか（2026-10-21 ユーザー「2試合に1回」）
   games: 0, ready: { inter: false, reward: false }, rewarded: false, done: null,
 };
 ADS.on = ADS.enabled && !!ADS.plugin || ADS.fake;
@@ -3599,6 +4249,7 @@ async function adsLoad(kind) {
 function adsDone(kind) {
   const cb = ADS.done; if (!cb) return;
   ADS.done = null;
+  resetAudio();   // 広告のあと音が止まったままにならないように
   adsLoad(kind);   // 次の分を先に読んでおく
   cb(kind === 'reward' ? ADS.rewarded : true);
 }
@@ -3644,8 +4295,10 @@ function showResult(champ) {
   }
   if (G.tut && champ === 0) track('tutorial_complete');
   G.adDue = ADS.on && !G.watch && !NET.role && !G.tut && ++ADS.games % ADS.every === 0;
-  $('reviveBtn').hidden = true;
+  $('reviveBtn').hidden = true; $('appBtn').hidden = true;
   $('remakeBtn').hidden = false;
+  $('modBtn').hidden = !NET.role;
+  $('rankBtn').hidden = !G.endless || !!NET.role || !!G.tut;
   if (NET.role) {
     label.textContent = champ === G.fighters[NET.me]?.team ? 'YOU WIN!' : 'YOU LOSE…';
     sub.textContent = ''; again.textContent = 'もう一回！'; $('remakeBtn').hidden = true;
@@ -3666,9 +4319,21 @@ function showResult(champ) {
     G.streak++;
     const isNew = G.streak > rec;
     if (isNew) saveNum(LS_STREAK, G.streak);
+    noteWeekBest(G.streak); sendScore();   // 連勝ランキング（名前を登録した人だけ）
     label.textContent = 'WIN!';
     $('winName').textContent = `${G.streak}連勝！`;
     sub.textContent = isNew && rec ? '🎉 自己ベスト更新中！' : `最高記録：${Math.max(rec, G.streak)}連勝`;
+    if (IS_WEB && G.streak >= WEB_STREAK_MAX) {   // Web 版はここまで。続きはアプリへ
+      label.textContent = 'CLEAR!';
+      $('winName').textContent = `第1階層クリア！（${G.streak}連勝）`;
+      sub.textContent = APP_STORE_URL ? 'つぎの第2階層「氷の神殿」からは、アプリ版で遊べます！' : 'つぎの第2階層「氷の神殿」からは、アプリ版で遊べます！ App Store で「バトルフェーズ」を探してね';
+      $('appBtn').hidden = !APP_STORE_URL;
+      again.textContent = 'もう一度 1人目から';
+      G.streak = -1;   // 「もう一度」は0から
+      track('web_trial_clear');
+      return;
+    }
+    if (G.streak % 10 === 0 && G.streak / 10 < STAGES.length) sub.textContent = `🏯 第${G.streak / 10}階層クリア！つぎは第${G.streak / 10 + 1}階層「${STAGES[stageNo(G.streak)].name}」へ`;
     again.textContent = 'つぎの相手へ ▶';
     $('remakeBtn').hidden = true;
   } else {
@@ -3677,10 +4342,10 @@ function showResult(champ) {
     $('winName').style.color = '#ffd23f';
     sub.textContent = G.streak > 0 && G.streak >= rec ? '🎉 自己ベスト！' : rec ? `最高記録：${rec}連勝` : 'まずは1勝をめざそう！';
     again.textContent = 'もう一度挑戦';
-    if (ADS.on && G.streak > 0 && !G.revived && adsReady('reward')) {   // 広告が読めていないときは出さない
+    if (ADS.on && G.streak > 0 && (G.revived || 0) < REVIVE_MAX && adsReady('reward')) {   // 広告が読めていないときは出さない
       G.reviveStreak = G.streak;
       $('reviveBtn').hidden = false;
-      $('reviveBtn').innerHTML = `📺 広告を見て復活<small>${G.streak}連勝からつづける（1回だけ）</small>`;
+      $('reviveBtn').innerHTML = `📺 広告を見て復活<small>${G.streak}連勝からつづける（あと${REVIVE_MAX - (G.revived || 0)}回）</small>`;
     }
     G.streak = -1;   // 「もう一度挑戦」で0から
   }
@@ -3692,7 +4357,8 @@ document.querySelectorAll('[data-go]').forEach(b => b.onclick = () => {
   G.mode = go;   // 分析用（cpu / quick / best など）
   track('menu_select', { item: go });
   G.watch = go === 'watch';
-  G.endless = go === 'endless'; G.streak = 0; G.revived = false;
+  G.endless = go === 'endless'; G.streak = 0; G.revived = 0;
+  if (PLATFORM === 'dev' && G.endless) G.streak = +new URLSearchParams(location.search).get('streak') || 0;   // 開発用：?streak=19 でその連勝数から（ステージ・ボスの確認）
   G.rule = go === 'cpu' || go === 'best' ? G.cpuRule : 'duel';
   if (go === 'tutorial') { startTutorial(); return; }
   if (go === 'online') { if (PLATFORM === 'ios' && !ONLINE_IN_APP) return; openOnline(); return; }
@@ -3740,7 +4406,7 @@ $('againBtn').onclick = () => {
   if (NET.role) { NET.again[NET.me] = true; netSend({ t: 'again' }); $('againBtn').textContent = 'みんなを待っています…'; netTryRestart(); return; }
   afterMatchAd(() => {
     if (G.tut) { const won = G.wins[0] > G.wins[1]; startTutorial(); if (!won) { G.tut.step = TUTORIAL.length - 1; G.fighters[1].b.name = 'よわいCPU'; buildHud(); tutShow(); } return; }
-    if (G.endless && G.streak < 0) G.revived = false;   // 0からの挑戦では、また1回復活できる
+    if (G.endless && G.streak < 0) G.revived = 0;   // 0からの挑戦では、また REVIVE_MAX 回復活できる
     if (G.vsCPU) G.builds.length = 1; startBattle();
   });
 };
@@ -3751,10 +4417,11 @@ $('reviveBtn').onclick = () => {
   adsShow('reward', ok => {
     if (!ok) { toast('広告を最後まで見ると復活できます', 2200); return; }
     track('revive', { streak: G.reviveStreak });
-    G.revived = true; G.adDue = false; G.streak = G.reviveStreak;
+    G.revived = (G.revived || 0) + 1; G.adDue = false; G.streak = G.reviveStreak;
     startBattle();
   });
 };
+$('appBtn').onclick = () => { sfx('select'); track('web_to_app'); if (APP_STORE_URL) window.open(APP_STORE_URL, '_blank'); };
 $('tutSkip').onclick = () => {
   if (G.tut) track('tutorial_skip', { step: G.tut.step });
   sfx('select');
@@ -3776,7 +4443,7 @@ function cleanupBattle() {
   buildTouch([]);
   for (const f of G.fighters) f.dispose();
   G.fighters = [];
-  for (const p of G.projectiles) scene.remove(p.m);
+  for (const p of G.projectiles) dropProj(p);
   G.projectiles = [];
   for (const p of particles) scene.remove(p.m);
   particles.length = 0;
@@ -3784,6 +4451,7 @@ function cleanupBattle() {
   dmgNums.length = 0;
   announceEl.innerHTML = '';
   $('roundStars').hidden = true;
+  clearHazards();
 }
 function updateTitleBest() {
   const rec = loadNum(LS_STREAK, 0);
@@ -3794,6 +4462,7 @@ function updateTitleBest() {
 }
 function goTitle() {
   updateTitleBest();
+  setStage(STAGES[0]);
   cleanupBattle();
   if (preview) { preview.dispose(); preview = null; }
   camera.clearViewOffset();
@@ -3821,7 +4490,8 @@ function loop() {
   let dt = Math.min(raw, 1 / 30);
   if (G.slowmo > 0) { G.slowmo -= dt; dt *= 0.3; }   // KOの瞬間をゆっくり見せる
   const t = performance.now() / 1000;
-  scene.children.forEach(o => { if (o.userData.bob !== undefined) o.position.y += Math.sin(t + o.userData.bob) * dt * 0.3; });
+  arena.children.forEach(o => { if (o.userData.bob !== undefined) o.position.y += Math.sin(t + o.userData.bob) * dt * 0.3; });
+  arena.userData.tick?.(dt);   // 雪・雨・火の粉など
   if (mode === 'create') {
     updatePreview(dt);
     renderer.render(pScene, camera);
