@@ -51,6 +51,13 @@
   #fakeAd { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; background: #000; color: #fff; font-size: 26px; font-weight: 800; }
   #fakeAd[hidden] { display: none; }
   .big-btn.tsub { font-size: 17px; padding: 11px 20px; }
+  .trow { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; }
+  .trow .big-btn { min-width: 0; padding: 11px 6px; white-space: nowrap; }
+  .trow .big-btn[hidden] { display: none; }
+  .trow:has(> [hidden]) { grid-template-columns: 1fr; }
+  .pr-opts { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+  .pr-opts .cpu-lv { flex-wrap: wrap; padding: 8px 10px; }
+  .pr-opts .cpu-lv .lb { width: 100%; margin: 0 0 2px 2px; }
   .tgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(62px, 1fr)); gap: 6px; width: 100%; }
   .tile { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-width: 0; padding: 10px 4px 8px; border: none; border-radius: 16px;
     background: rgba(27, 21, 48, .8); color: #fff; font-weight: 800; font-size: 12px; white-space: nowrap; box-shadow: 0 4px 0 rgba(0,0,0,.3); transition: transform .08s; }
@@ -60,6 +67,17 @@
   .tile:active { transform: translateY(2px); box-shadow: 0 2px 0 rgba(0,0,0,.3); }
   .tile[hidden] { display: none; }
   .dev-only { display: none !important; }
+  /* 広告なしプラン */
+  .na-feat { margin: 0; padding-left: 1.3em; font-size: 15px; line-height: 1.8; }
+  .na-price { font-family: "Mochiy Pop One", sans-serif; font-size: 26px; color: var(--gold); text-align: center; margin: 4px 0 0; }
+  .na-legal { font-size: 11px !important; opacity: .75; line-height: 1.6 !important; }
+  .na-legal a { color: inherit; }
+  #noAdsLink { margin-top: -4px; }
+  .ping { font-size: 11px; font-weight: 800; color: #b8f5c8; text-shadow: 0 1px 3px rgba(0,0,0,.7); white-space: nowrap; }
+  .ping.mid2 { color: #ffe08a; } .ping.bad { color: #ff9a8a; }
+  /* 撮影モード：動画に要らない表示を隠す */
+  html.shoot :is(#pauseBtn, .ctrl, #toast, #result .row, #result button, #tut) { display: none !important; }
+  html.shoot-nohud :is(#hud .bar, #hud .pl, #hud .hud-sub) { visibility: hidden !important; }
   body.dev .dev-only { display: flex !important; }   /* 観戦は開発用（?dev を付けたときだけ） */
   #title > * { pointer-events: auto; }
   .logo { font-family: "Mochiy Pop One", sans-serif; font-size: clamp(44px, 9vw, 110px); line-height: 1; letter-spacing: 2px;
@@ -247,6 +265,8 @@
   #shatter .fl { position: absolute; inset: 0; background: #fff; }
   #flash { position: fixed; inset: 0; pointer-events: none; z-index: 4; opacity: 0; }
   #dmg { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
+  .dn.num { font-size: 48px; -webkit-text-stroke: 2.5px #000; text-shadow: 0 4px 0 rgba(0,0,0,.55); }
+  .dn.big { font-size: 72px; -webkit-text-stroke: 3px #7a1b00; text-shadow: 0 0 18px rgba(255,180,40,.9), 0 5px 0 rgba(0,0,0,.6); }
   .dn { position: absolute; font-family: "Mochiy Pop One"; font-size: 26px; color: #fff; -webkit-text-stroke: 1.5px #000;
     transform: translate(-50%, -50%); white-space: nowrap; }
 
@@ -313,6 +333,7 @@
     body.touch .tmenu { width: min(540px, 88vw); gap: 14px; }
     body.touch .tmenu .big-btn { font-size: 27px; padding: 20px 34px; }
     body.touch .tmenu .big-btn small { font-size: 15px; }
+    body.touch .tmenu .trow .big-btn { font-size: 23px; padding: 18px 8px; }
     body.touch .cpu-lv { font-size: 16px; padding: 6px 8px 6px 16px; } body.touch .cpu-lv .lb { font-size: 15px; } body.touch .cpu-lv .opt { font-size: 16px; padding: 8px 16px; }
     body.touch .tbtns:not([style]) { transform: scale(1.4); transform-origin: bottom right; }
     body.touch .tpad.mirror .tbtns:not([style]) { transform-origin: bottom left; }
@@ -366,6 +387,45 @@
   .rk .nm { flex: 1; font-weight: 800; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .rk .n { font-weight: 900; color: var(--gold); white-space: nowrap; }
   .rk .tool { padding: 4px 8px; font-size: 12px; }
+  .rk.me .nm::before { content: '▶ '; color: var(--gold); }
+  .rk-src { font-size: 12px; opacity: .85; text-align: center; }
+  /* 連勝ランキングの画面（明るめ・上位3人は金銀銅で光らせる） */
+  #sheet .mbox.rank { background: radial-gradient(120% 70% at 50% 0%, #7b4be0 0%, #432a86 45%, #2a1d57 100%); border: 2px solid var(--gold); box-shadow: 0 0 0 4px rgba(255,210,63,.18), 0 18px 60px rgba(255,170,40,.35); gap: 10px; }
+  .rk-head { text-align: center; }
+  .rk-head .cup { display: inline-block; font-size: 34px; animation: rkBob 2.4s ease-in-out infinite; filter: drop-shadow(0 4px 10px rgba(255,210,63,.6)); }
+  .rk-head b { display: block; font-size: 26px; color: var(--gold); text-shadow: 0 3px 0 #c2410c, 0 8px 20px rgba(0,0,0,.4); }
+  .rk-head small { display: block; font-size: 12px; opacity: .85; margin-top: 2px; }
+  .rk-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; background: rgba(0,0,0,.25); padding: 4px; border-radius: 14px; }
+  .rk-tabs .tool { padding: 9px 0; font-size: 15px; }
+  .rank .rk-list { gap: 5px; }
+  .rank .rk { background: rgba(255,255,255,.1); padding: 7px 10px; animation: rkIn .45s cubic-bezier(.2,1.4,.4,1) both; animation-delay: var(--d, 0ms); }
+  .rank .rk .no { width: 30px; height: 30px; line-height: 30px; border-radius: 50%; font-size: 15px; background: rgba(0,0,0,.25); }
+  .rank .rk.empty { opacity: .45; }
+  .rank .rk.empty .n { color: inherit; }
+  .rank .rk.top { position: relative; overflow: hidden; padding: 10px 10px; color: #2a1600; }
+  .rank .rk .nm { font-size: 14px; }
+  .rank .rk.top .nm { font-size: 15px; }
+  .rank .rk.top .n { color: #2a1600; font-size: 17px; }
+  .rank .rk.top .no { background: rgba(255,255,255,.55); color: #2a1600; box-shadow: inset 0 -2px 0 rgba(0,0,0,.15); }
+  .rank .rk.t1 { background: linear-gradient(100deg, #ffe680, #ffc21a 55%, #ff9f1a); box-shadow: 0 0 18px rgba(255,200,40,.75); padding: 13px 10px; }
+  .rank .rk.t1 .nm { font-size: 16px; }
+  .rank .rk.t1 .n { font-size: 19px; }
+  .rank .rk.t2 { background: linear-gradient(100deg, #f4f6fb, #c3cad8 60%, #9aa4b8); box-shadow: 0 0 12px rgba(220,230,255,.5); }
+  .rank .rk.t3 { background: linear-gradient(100deg, #ffd0a6, #e0925a 60%, #b8673a); box-shadow: 0 0 12px rgba(230,150,90,.5); }
+  .rank .rk.top::after { content: ''; position: absolute; top: 0; bottom: 0; width: 40%; left: -60%; background: linear-gradient(100deg, transparent, rgba(255,255,255,.7), transparent); transform: skewX(-20deg); animation: rkShine 3.2s ease-in-out infinite; animation-delay: calc(var(--d, 0ms) + .6s); pointer-events: none; }
+  .rank .rk .crown { display: inline-block; margin-right: 2px; animation: rkBob 1.6s ease-in-out infinite; }
+  .rank .rk.me { outline: 3px solid #fff; }
+  .rank .rk.top.me .nm::before { content: none; }   /* 上位3人は白い枠だけで自分と分かる */
+  .rank .rk.me:not(.top) { background: rgba(255,210,63,.3); }
+  .rank .rk.top .tool { color: #2a1600; }
+  .rank .rk-me { background: rgba(0,0,0,.25); border-radius: 12px; padding: 8px 10px; }
+  .rank .rk-me:empty { display: none; }
+  .rank .rk-me b { font-size: 15px; }
+  .rank .rk-me small { display: block; font-size: 12px; opacity: .8; margin-top: 2px; }
+  .rank .rk.wait { animation: none; }
+  @keyframes rkIn { from { opacity: 0; transform: translateX(-24px) scale(.96); } to { opacity: 1; transform: none; } }
+  @keyframes rkShine { 0%, 55% { left: -60%; } 100% { left: 130%; } }
+  @keyframes rkBob { 0%, 100% { transform: translateY(0) rotate(-4deg); } 50% { transform: translateY(-4px) rotate(4deg); } }
   #sheet input[type=text] { flex: 1; min-width: 0; border-radius: 10px; border: 2px solid var(--line); background: var(--shade); color: var(--ink); padding: 8px; font-size: 16px; user-select: text; -webkit-user-select: text; }
   #sheet label { display: flex; gap: 8px; align-items: center; font-size: 14px; }
   #sheet textarea { width: 100%; height: 64px; resize: none; border-radius: 10px; border: 2px solid var(--line); background: var(--shade); color: var(--ink); padding: 8px; font-size: 14px; user-select: text; -webkit-user-select: text; }
@@ -420,6 +480,7 @@
     .ttop .sub { margin: 8px 0 0; font-size: 14px; }
     .tmenu { width: min(640px, 92vw); gap: 6px; display: grid; grid-template-columns: 1fr 1fr; }   /* ボタンは2列に（縦に並べるとはみ出す） */
     .tmenu .cpu-lv, .tmenu .tgrid { grid-column: 1 / -1; justify-self: center; }
+    .tmenu .trow { grid-column: span 1; gap: 6px; }
     .tile { padding: 6px 4px; } .tile b { font-size: 20px; }
     .cpu-lv { padding: 4px 8px; font-size: 12px; } .cpu-lv .opt { padding: 4px 9px; font-size: 12px; }
     .logo { font-size: 48px; }
@@ -450,14 +511,19 @@
   </div>
   <div class="tmenu">
     <!-- チュートリアル・おまかせ・ふたりでは一旦外した（2026-10-11。処理は残してある）。オンラインは 2026-10-12 に戻した -->
+    <!-- 2026-10-24 ユーザー「背景が見えるように」：CPUのつよさ・ルールは「練習試合」を押したあとに選ぶ（openPractice） -->
+    <!-- Web 版だけ：アプリへ移ってもらう（2026-10-27 ユーザー「web と TestFlight の人にアプリに流入してもらいたい」） -->
+    <button class="big-btn purple tmain" id="homeAppGo" hidden>📱 アプリ版で遊ぶ<small>続きの階層・全国ランキング・友達対戦</small></button>
     <button class="big-btn gold tmain" data-go="endless">🏆 勝ち抜き<small id="endlessRec"></small></button>
-    <button class="big-btn blue tmain" data-go="cpu">⚔️ CPUと対戦</button>
-    <button class="big-btn purple tmain tsub" data-go="online" id="onlineGo">🌐 オンライン対戦<small>部屋コードで友達と</small></button>
-    <button class="big-btn ghost tmain tsub" data-go="best" id="bestGo" hidden>⭐ マイキャラで対戦<small id="bestName"></small></button>
-    <div class="cpu-lv" id="ruleSel"></div>
-    <div class="cpu-lv" id="cpuLv"></div>
+    <div class="trow">
+      <button class="big-btn blue tsub" data-go="cpu" id="practiceGo">⚔️ 練習試合<small id="practiceSub"></small></button>
+      <button class="big-btn purple tsub" data-go="online" id="onlineGo">🌐 オンライン<small>部屋コードで友達と</small></button>
+    </div>
+    <button class="big-btn ghost tmain tsub" data-go="best" id="bestGo" hidden>⭐ マイキャラで練習<small id="bestName"></small></button>
+    <div hidden><div class="cpu-lv" id="ruleSel"></div><div class="cpu-lv" id="cpuLv"></div></div>
     <div class="tgrid">
       <button class="tile" id="rankGo"><b>🏅</b>連勝ランキング</button>
+      <button class="tile" id="noAdsGo" hidden><b>👑</b><span id="noAdsLbl">広告なし</span></button>
       <button class="tile dev-only" data-go="watch"><b>👀</b>観戦</button>
     </div>
   </div>
@@ -475,7 +541,7 @@
 <div id="hud" class="screen">
   <div class="hud-top">
     <div class="pl" id="hud0"></div>
-    <div class="mid"><div class="rnd" id="rnd">ROUND 1</div><button id="pauseBtn" aria-label="ポーズ">⏸</button></div>
+    <div class="mid"><div class="rnd" id="rnd">ROUND 1</div><div class="ping" id="netPing" hidden></div><button id="pauseBtn" aria-label="ポーズ">⏸</button></div>
     <div class="pl r" id="hud1"></div>
   </div>
   <div class="hud-sub" id="hudSub" hidden><div class="pl" id="hud2"></div><div class="pl r" id="hud3"></div></div>
@@ -495,6 +561,7 @@
   <div class="win-name" id="winName"></div>
   <div class="win-sub" id="winSub"></div>
   <button class="big-btn purple" id="reviveBtn" hidden></button>
+  <button class="tool" id="noAdsLink" hidden>👑 広告を消す</button>
   <button class="big-btn purple" id="appBtn" hidden>📱 アプリで続きを遊ぶ<small>第2階層「氷の神殿」から先はアプリ版で</small></button>
   <button class="big-btn gold" id="againBtn">もう一回！</button>
   <button class="big-btn blue" id="remakeBtn">キャラをつくりなおす</button>
@@ -646,6 +713,10 @@ const JUST_LOCK = 0.9;     // ジャストガードされた側は、この秒�
 //   hitstop：当たった瞬間に画面全体が止まる時間 = (2 + ダメージ×0.45)F（剣 約6F・ハンマー 約11F、最大11F）。ガードされたときはその0.75倍
 //   blockStun：ガードで受けた側がガードを解けない時間 = ダメージ×0.004秒（剣2F・ハンマー5F）。重い武器はガードされると反撃を受ける
 const FEEL = { stopBase: 2, stopPerDmg: 0.45, stopMax: 11, guardStop: 0.75, blockStun: 0.004 };
+// 派手な演出（2026-10-25 ユーザー「ダメージ・ふっとび・攻撃の演出を5倍くらい大きく過激に」）。見た目だけで、ダメージ量・ふっとぶ距離は変えない
+//   size：輪・光の大きさ ／ count：粒の数 ／ shake：画面の揺れ。重い端末（QUALITY.lv が1以上）は粒を減らす
+const FXB = { size: 2.2, count: 2.5, shake: 2.2 };
+const fxCount = n => Math.round(n * (QUALITY.lv >= 1 ? 1.2 : FXB.count));
 const hitStopOf = (dmg, k = 1) => Math.min(FEEL.stopMax, (FEEL.stopBase + dmg * FEEL.stopPerDmg) * k) / 60;
 // 1発で溜まる必殺ゲージの上限（どんなに強い攻撃でも、必殺技には最低3回当てる必要がある）
 const SP_HIT_CAP = 0.25;
@@ -657,11 +728,21 @@ const COMBO = { on: false, cap: 25, steps: [1, 0.47, 0.61], stunPad: 0.12, knock
 //   aim：攻撃するときの狙いのずれ（ラジアン）。人はスティックで狙うので、弱いCPUほど狙いが甘い
 //   「つよい」は、シミュレーターの基準になっている以前の「ふつう」と同じ動き（バランス調整はこの強さで行っている）
 //   parry：相手の振りを見てジャストガードする確率／punish：空振り・しびれのスキに反撃する確率（おにだけ。2026-10-10）
+//   「おに」は強すぎたので、つよいと前のおにの間くらいに下げた（2026-10-26）
 const CPU_LV = [
   { name: 'よわい', think: 3.0, atk: 0.18, react: 0.05, guard: 0.06, step: 0.04, chain: 0.1, charge: 0.05, skill: 0.1, aim: 0.9 },
   { name: 'ふつう', think: 2.0, atk: 0.35, react: 0.2, guard: 0.3, step: 0.25, chain: 0.4, charge: 0.2, skill: 0.25, aim: 0.5 },
   { name: 'つよい', think: 1,   atk: 0.6,  react: 0.5, guard: 1,   step: 1,   chain: 1,   charge: 0.6, skill: 0.5, aim: 0 },
-  { name: 'おに',   think: 0.2, atk: 0.9,  react: 1,    guard: 1.6, step: 2,  chain: 1,   charge: 0.9, skill: 1, aim: 0, parry: 0.85, punish: 1 },
+  { name: 'おに',   think: 0.6, atk: 0.75, react: 0.75, guard: 1.3, step: 1.5, chain: 1,  charge: 0.75, skill: 0.75, aim: 0, parry: 0.25, punish: 0.4,
+    // 武器ごとに、連打する人への勝率が50%くらいになるよう調整（2026-10-26、sim）
+    wpn: { orb: { atk: 0.26, think: 1.4, react: 0.4 }, spear: { parry: 0.6, punish: 0.8 }, axe: { parry: 0.45, punish: 0.6 }, hammer: { parry: 0.25, punish: 0.4 },
+           sword: { parry: 0.25, punish: 0.45 }, fist: { parry: 0.25, punish: 0.4 }, hand: { parry: 0.35, punish: 0.55 } },
+    vs: { spear: { parry: 0.6, punish: 0.7, atk: 0.9 }, axe: { parry: 0.6, punish: 0.7, atk: 0.9 }, orb: { react: 1.8, step: 1.6, think: 0.8 }, hammer: { parry: 1.6, punish: 1.3 }, fist: { parry: 1.2 }, hand: { parry: 1.2, punish: 1.1 } } },
+  // 勝ち抜き専用（hidden＝練習試合では選べない）。各階層の9戦目に1人だけ出る。連打する人に3割くらい勝つ（つよい と おに の間）。2026-10-27
+  { name: '超つよい', think: 0.75, atk: 0.72, react: 0.67, guard: 1.15, step: 1.3, chain: 1, charge: 0.7, skill: 0.67, aim: 0, parry: 0.17, punish: 0.32, hidden: true,
+    wpn: { orb: { atk: 0.2, think: 1.6, react: 0.36 }, spear: { parry: 0.42, punish: 0.62 }, axe: { parry: 0.34, punish: 0.5 }, hammer: { parry: 0.19, punish: 0.34 },
+           sword: { parry: 0.2, punish: 0.36 }, fist: { parry: 0.23, punish: 0.39 }, hand: { parry: 0.27, punish: 0.45 } },
+    vs: { spear: { parry: 0.75, punish: 0.8, atk: 0.95 }, axe: { parry: 0.65, punish: 0.75, atk: 0.9 }, orb: { react: 1.8, step: 1.6, think: 0.8 }, hammer: { parry: 1.5, punish: 1.25 }, fist: { parry: 1.25 }, hand: { parry: 1.2, punish: 1.1 } } },
 ];
 // チュートリアル：カカシくん相手に1つずつ練習して、最後によわいCPUと1本勝負
 //   need：この回数（move は動いた距離）できたら次へ
@@ -679,16 +760,25 @@ const LS_TUT = 'battlephase_tutorial_v1';
 //   送るのは「いつ・どの画面で・何をしたか」だけ（名前や絵などの中身は送らない）
 const ANALYTICS = { key: 'phc_D5Rw35rXa8vm8tDk2gh3kBBdN8wrGEZbwGpcWMMToV7i', host: 'https://us.i.posthog.com' };   // PostHog（US・プロジェクト 656616）の公開用キー
 //   動作確認は ?antest を付けると platform=test で送る（本番の数字と分けて見られる）
-const PLATFORM = window.Capacitor?.isNativePlatform?.() ? 'ios' : /github\.io$/.test(location.hostname) ? 'web' : /antest/.test(location.search) ? 'test' : 'dev';
+// テスト用の Web 版（分析サイトの /play/、パスワード付き）は test：本番の中継サーバー・音あり・Web 版の制限なし・分析は test として分ける
+const PLATFORM = window.Capacitor?.isNativePlatform?.() ? 'ios' : /github\.io$/.test(location.hostname) ? 'web' : /antest/.test(location.search) || location.hostname === 'battlephase-analytics.vercel.app' ? 'test' : 'dev';
 // アプリ版でオンライン対戦を出すか（2026-10-17 ユーザー：App Store の 1.0 では隠す。1.1 で名前の伏せ字・通報・ブロックを付けて戻した）
-const ONLINE_IN_APP = false;   // 2026-10-21 ユーザー「オンライン対戦はまだいらん」→ 1.1 もアプリでは隠す（Web 版はそのまま）
+const FOUR_IN_APP = false;   // 2026-10-21 ユーザー「2対2とかはまだ入れなくていい」→ アプリの CPU対戦は1対1だけ（バトロワ・2対2 の選択を隠す。Web 版はそのまま）
+const ONLINE_IN_APP = true;   // 2026-10-23 ユーザー「友達対戦を 1.3 で出す」（2026-10-21 は「まだいらん」で隠していた）
+// オンライン対戦の部屋の人数：2026-10-23 ユーザー「1対1でいこう」→ 2人まで（ルールの選択は出さない）。Web 版は前の版のまま4人
+const ONLINE_MAX = 2;
 // Web 版（ブラウザ）はお試し：勝ち抜きは第1階層（WEB_STREAK_MAX 連勝）まで、連勝ランキングは見るだけ。続きはアプリへ案内する
 //   開発中は ?web を付けると Web 版と同じ動き
+// 撮影モード（SNS の動画用。開発用・テスト版だけ。tools/shoot.html から ?shoot&floor=階層0〜5&lv=CPUの強さ0〜3&hud=0 で開く）
+//   CPU どうしの試合を自動でくり返す・音を鳴らす・縦長で細かく描く・動画に要らない表示を隠す（2026-10-24 ユーザー「SNS の運用を強化」）
+const SHOOT = (PLATFORM === 'dev' || PLATFORM === 'test') && /[?&]shoot\b/.test(location.search) ? Object.fromEntries(new URLSearchParams(location.search)) : null;
+if (SHOOT) document.documentElement.classList.add('shoot');
+if (SHOOT && SHOOT.hud === '0') document.documentElement.classList.add('shoot-nohud');
 const IS_WEB = PLATFORM === 'web' || (PLATFORM === 'dev' && /[?&]web\b/.test(location.search));
 const WEB_STREAK_MAX = 10;
 const REVIVE_MAX = 5;   // 勝ち抜きで「広告を見て復活」できる回数（1回の挑戦で。2026-10-21 ユーザー「五回まで」）
-// App Store のページ（1.0 が公開されたら App Store Connect の「Apple ID」の番号で https://apps.apple.com/jp/app/id番号 を入れる）。空のあいだはボタンを出さず文字で案内
-const APP_STORE_URL = '';
+// App Store のページ（App Store Connect の「Apple ID」の番号）。空のあいだはボタンを出さず文字で案内
+const APP_STORE_URL = 'https://apps.apple.com/jp/app/id6820875383';
 if (PLATFORM === 'ios' && !ONLINE_IN_APP) document.getElementById('onlineGo').hidden = true;
 const anaQueue = [];
 function track(event, props = {}) {
@@ -700,18 +790,52 @@ function track(event, props = {}) {
 function initAnalytics() {
   if (!ANALYTICS.key || PLATFORM === 'dev') return;
   const s = document.createElement('script'); s.src = './vendor/posthog.js'; s.async = true;
-  s.onload = () => {
+  s.onload = async () => {
+    // どこから入れた版か（App Store / TestFlight / 開発用 / シミュレーター）。分析で App Store の人だけを数えるため（1.3 から）
+    let info = null;
+    if (PLATFORM === 'ios') try { info = await Promise.race([window.Capacitor?.Plugins?.AppInfo?.get(), new Promise(r => setTimeout(r, 1500))]); } catch { /* 古い版・取れないとき */ }
     try {
       window.posthog.init(ANALYTICS.key, {
         api_host: ANALYTICS.host, persistence: 'localStorage', person_profiles: 'always',
         autocapture: false, capture_pageview: false, capture_pageleave: false, disable_session_recording: true, disable_surveys: true,
         advanced_disable_feature_flags: true,
       });
-      window.posthog.register({ platform: PLATFORM });
+      window.posthog.register({ platform: PLATFORM, channel: info?.channel || (PLATFORM === 'ios' ? 'unknown' : PLATFORM), app_version: info?.version || null, app_build: info?.build || null });
       for (const [e, p] of anaQueue.splice(0)) window.posthog.capture(e, p);
     } catch { /* 読み込めなくても続ける */ }
   };
   document.head.appendChild(s);
+}
+// ===== 不具合の記録（2026-10-21 ユーザー「バグが発生していないか定期的に監視して欲しい」）=====
+//   js_error：画面のプログラムのエラー（同じものは1回の起動で1回、全部で10件まで）
+//   unexpected_restart：前回、アプリが前に出たまま終わった（WKWebView がメモリ不足などで落ち、読み直されてタイトルに戻った）
+//     裏に回ったときは印（bg）を付けるので、裏で OS に終了されたもの・自分で閉じたものはふつう数えない
+const LS_ALIVE = 'battlephase_alive_v1';
+const errSeen = new Set();
+const nowWhere = () => { try { return mode; } catch { return 'boot'; } };
+function trackError(kind, msg, stack) {
+  msg = String(msg || '').slice(0, 300);
+  if (errSeen.has(msg) || errSeen.size >= 10) return;
+  errSeen.add(msg);
+  track('js_error', { kind, msg, stack: String(stack || '').slice(0, 800), where: nowWhere(), uptime: Math.round(performance.now() / 1000) });
+}
+addEventListener('error', e => trackError('error', e.message, e.error?.stack || `${e.filename}:${e.lineno}:${e.colno}`));
+addEventListener('unhandledrejection', e => trackError('promise', e.reason?.message || e.reason, e.reason?.stack));
+function markAlive() {
+  try {
+    let geo = null; try { geo = renderer.info.memory.geometries; } catch {}
+    localStorage.setItem(LS_ALIVE, JSON.stringify({ t: Date.now(), bg: document.hidden, where: nowWhere(), geo, up: Math.round(performance.now() / 1000) }));
+  } catch {}
+}
+function checkLastRun() {
+  try {
+    const p = JSON.parse(localStorage.getItem(LS_ALIVE) || 'null');
+    if (p && !p.bg) track('unexpected_restart', { where: p.where, geo: p.geo, uptime: p.up, ago: Math.round((Date.now() - p.t) / 1000) });
+  } catch {}
+  markAlive();
+  setInterval(markAlive, 10000);
+  document.addEventListener('visibilitychange', markAlive);
+  addEventListener('pagehide', () => { try { localStorage.setItem(LS_ALIVE, JSON.stringify({ t: Date.now(), bg: true })); } catch {} });
 }
 // 手書きキャラ：false のあいだは「手書きで描く」を出さず、描いた絵があってもパーツの見た目で戦う（2026-10-10 ユーザーの希望で一旦なし。戻すときは true）
 //   描いた絵のデータ（drawing）は保存したまま残すので、true に戻せば元どおり
@@ -721,10 +845,13 @@ const DRAW_ON = false;
 const NET = { role: null, me: 0, slot: 0, slots: [], seatOf: {}, pids: {}, seatPid: {}, rawNames: {}, phase: null, rx: {}, ws: null, code: null, ping: 0, sendT: 0, held: {}, lastRx: 0, warnT: 0, mute: false, builds: [], again: {}, snap: null, remote: {}, edges: {}, events: [], proj: new Map(), seq: 0 };
 const NET_STATES = ['idle', 'attack', 'charge', 'dash', 'dodge'];
 const CPU_BASE_LV = 2;   // レベル指定のないCPU（観戦・シミュレーター）はこの強さ
-// 勝ち抜きモード：何連勝したかで相手のつよさが上がる（この連勝数から）
-const ENDLESS_LV = [0, 3, 6, 10];
-// 勝ち抜きで from 連勝したあとは、1勝ごとにおにが強くなる（おに+1, +2…）。per＝1段あたり、max＝上限
-const ENDLESS_BOOST = { from: 20, dmg: [0.03, 1.6], wt: [0.015, 1.3], spd: [0.008, 1.12], think: 0.05, parry: [0.03, 0.95] };
+// 勝ち抜きモード：何連勝したかで相手のつよさが上がる。1階層目（0〜9連勝）はこの連勝数から よわい→ふつう→つよい
+//   どの階層も 9戦目（8・18・28…連勝目）は 超つよい、10戦目（9・19・29…連勝目）は おに（階層の必殺技を使う）。2階層目からの1〜8戦目は つよい（2026-10-27）
+const ENDLESS_LV = [0, 3, 6];
+// 勝ち抜き：各階層の おに（9・19・29…連勝目）は階層ごとに強くなる（おに, おに+3, おに+6…）。per＝+1 あたり、max＝上限
+//   2026-10-27 ユーザー「おには3ずつ増えていく」。前は20連勝から1勝ごとに +1 していて、30連勝あたりで人の勝ちが15%まで下がっていた
+const ENDLESS_BOOST = { step: 3, dmg: [0.03, 1.6], wt: [0.015, 1.3], spd: [0.008, 1.12], think: 0.05, parry: [0.03, 0.95] };
+const endlessBoost = streak => streak % 10 === 9 ? ENDLESS_BOOST.step * Math.floor(streak / 10) : 0;
 // 勝ち抜き：10連勝ごとに次の階層へ（ステージの見た目＋しかけが変わる）。相手もその階層に住んでいそうなキャラになる
 //   floor＝床の色・線・まんなか、rim＝ふちの色と光、rock＝浮かぶ岩の色（HSL）、elem＝相手の属性の選ばれ方、hue＝相手の色あい（範囲）
 //   tone＝相手の体の色の あざやかさ・明るさの範囲 [s0, s1, l0, l1]（なければ ふつう）
@@ -794,7 +921,7 @@ function randomBuild() {
   return b;
 }
 // 勝ち抜きの相手：その階層に合った属性・色あい・体・帽子・目・名前
-function stageBuild(no) {
+function stageBuild(no, boss = false) {   // boss＝階層の おに（必殺技を使う）
   const stg = STAGES[no], b = randomBuild();
   if (stg.elem) b.element = pick(stg.elem);
   if (stg.hue) {
@@ -807,8 +934,9 @@ function stageBuild(no) {
     const F = stg.foe;
     b.body = pick(F.body); b.hat = pick(F.hat); b.eyes = pick(F.eyes); b.name = pick(F.name) + pick(NAME_B);
     if (F.head) b.head = pick(F.head);
-    if (F.special) { b.special = F.special; b.skill = 'shot'; }   // skill はゲージのたまり方（SKILL_COST）だけに使う
   }
+  // 階層の必殺技は おにだけ（1階層目には決まった技がないので、どれか1つ）。skill はゲージのたまり方（SKILL_COST）だけに使う
+  if (boss) { b.special = stg.foe?.special || pick(Object.keys(SPECIALS)); b.skill = 'shot'; }
   return b;
 }
 function defaultBuild(i) {
@@ -1189,7 +1317,7 @@ function finishCharacter(b, root, inner, accM, info, parts) {
    レンダラー & シーン
    ========================================================= */
 const renderer = new THREE.WebGLRenderer({ antialias: true });
-if (PLATFORM === 'dev') window.__bp = { renderer, get scene() { return scene; }, get pScene() { return pScene; }, get camera() { return camera; } };   // 開発用：localhost でだけ、メモリの数（renderer.info.memory）をブラウザから確かめられるように
+if (PLATFORM === 'dev' || SHOOT) window.__bp = { renderer, get scene() { return scene; }, get pScene() { return pScene; }, get camera() { return camera; }, get ADS() { return ADS; }, get G() { return G; } };   // 開発用：localhost でだけ、メモリの数（renderer.info.memory）をブラウザから確かめられるように
 const IS_TOUCH = matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window || location.search.includes('touch');
 if (IS_TOUCH) document.body.classList.add('touch');
 renderer.setPixelRatio(Math.min(devicePixelRatio, IS_TOUCH ? 1.5 : 2));
@@ -1401,13 +1529,18 @@ addEventListener('resize', () => {
 let AC = null;
 // true で効果音をすべて止める（2026-10-10 に一時ミュート → 2026-10-15 音を戻した）
 //   このMacで動作確認するとき（localhost で開いたとき・?mute を付けたとき・iOS シミュレーター用に UA に BPMute を付けてビルドしたとき）だけ鳴らさない（2026-10-15 ユーザーの希望）。アプリ・TestFlight・GitHub Pages は鳴る
-const MUTE = PLATFORM === 'dev' || /[?&]mute\b/.test(location.search) || navigator.userAgent.includes('BPMute');
+const MUTE = !SHOOT && PLATFORM === 'dev' || /[?&]mute\b/.test(location.search) || navigator.userAgent.includes('BPMute');
 // iPhone では、電話・通知・ほかのアプリの音・広告・バックグラウンドのあと、音が止まったまま戻らないことがある（2026-10-21 リリース後の報告「急に音がなくなる」）
 //   → 画面に戻ってきたとき・広告を閉じたときは音の仕組みを作り直し、画面をさわったときに止まっていれば再開する
 function resetAudio() { if (AC) { try { AC.close(); } catch { /* もう閉じている */ } AC = null; } }
 document.addEventListener('visibilitychange', () => { if (!document.hidden) resetAudio(); });
 addEventListener('pageshow', resetAudio);
 for (const ev of ['pointerdown', 'touchend']) document.addEventListener(ev, () => { if (AC && AC.state !== 'running') AC.resume?.().catch(resetAudio); }, { passive: true, capture: true });
+// 効果音の出口（ひとつにまとめる。撮影モードでは録画用にも出す）
+function sfxOut() {
+  if (!AC.__out) { const g = AC.createGain(); g.connect(AC.destination); if (SHOOT) { AC.__rec = AC.createMediaStreamDestination(); g.connect(AC.__rec); window.__shootAudio = AC.__rec.stream; } AC.__out = g; }
+  return AC.__out;
+}
 function sfx(kind) {
   if (netRec()) NET.events.push(['sfx', kind]);
   if (MUTE) return;
@@ -1420,14 +1553,14 @@ function sfx(kind) {
       const o = AC.createOscillator(), g = AC.createGain();
       o.type = type; o.frequency.setValueAtTime(f1, t); o.frequency.exponentialRampToValueAtTime(Math.max(20, f2), t + dur);
       g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
-      o.connect(g).connect(AC.destination); o.start(t); o.stop(t + dur);
+      o.connect(g).connect(sfxOut()); o.start(t); o.stop(t + dur);
     };
     const noise = (dur, vol = 0.2, hp = 800) => {
       const buf = AC.createBuffer(1, AC.sampleRate * dur, AC.sampleRate), d = buf.getChannelData(0);
       for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length);
       const s = AC.createBufferSource(), f = AC.createBiquadFilter(), g = AC.createGain();
       f.type = 'highpass'; f.frequency.value = hp; g.gain.value = vol;
-      s.buffer = buf; s.connect(f).connect(g).connect(AC.destination); s.start(t);
+      s.buffer = buf; s.connect(f).connect(g).connect(sfxOut()); s.start(t);
     };
     switch (kind) {
       case 'swing': noise(0.12, 0.08, 2500); break;
@@ -1725,16 +1858,16 @@ function fxHit(pos, dir, elem, big) {
     // 衝撃の輪（カメラの方を向いて広がる）
     const ring = fxMesh(fxGeo.ring, big ? 0xfff3b0 : 0xffffff, 0.9);
     ring.position.copy(pos); ring.lookAt(camera.position); scene.add(ring);
-    const rMax = big ? 2.6 : 1.5;
-    effects.push({ t: 0, dur: 0.28, update(e) { const k = e.t / 0.28; ring.scale.setScalar(0.3 + k * rMax); ring.material.opacity = 0.9 * (1 - k); }, dispose() { scene.remove(ring); ring.material.dispose(); } });
+    const rMax = (big ? 2.6 : 1.5) * FXB.size;
+    effects.push({ t: 0, dur: 0.34, update(e) { const k = e.t / 0.34; ring.scale.setScalar(0.3 + k * rMax); ring.material.opacity = 0.9 * (1 - k); }, dispose() { scene.remove(ring); ring.material.dispose(); } });
     // 斬撃の線（攻撃の向きに長い光）
     const slash = fxMesh(fxGeo.plane, 0xffffff, 1);
     slash.position.copy(pos); slash.lookAt(camera.position);
     const sAng = Math.atan2(-dir.z, dir.x) + (Math.random() - 0.5) * 0.6;
     slash.rotateZ(sAng);
     scene.add(slash);
-    const len = big ? 3.2 : 2.2;
-    effects.push({ t: 0, dur: 0.16, update(e) { const k = e.t / 0.16; slash.scale.set(len * (0.4 + k), 0.16 * (1 - k) + 0.02, 1); slash.material.opacity = 1 - k; }, dispose() { scene.remove(slash); slash.material.dispose(); } });
+    const len = (big ? 3.2 : 2.2) * FXB.size;
+    effects.push({ t: 0, dur: 0.2, update(e) { const k = e.t / 0.2; slash.scale.set(len * (0.4 + k), 0.34 * (1 - k) + 0.03, 1); slash.material.opacity = 1 - k; }, dispose() { scene.remove(slash); slash.material.dispose(); } });
     // 属性ごとの粒
     if (elem === 'fire') burst(pos, 0xff8a2a, 14, 4, 0.13, -7, 0.8);                       // 火の粉が舞い上がる
     else if (elem === 'ice') {                                                               // 氷のかけら
@@ -1766,7 +1899,7 @@ function fxHit(pos, dir, elem, big) {
         effects.push({ t: 0, dur: 0.4, update(e) { const k = e.t / 0.4; m.scale.setScalar(0.4 + k * (1.8 + i * 0.6)); m.rotation.z += 0.25; m.material.opacity = 0.7 * (1 - k); }, dispose() { scene.remove(m); m.material.dispose(); } });
       }
     }
-    if (big) fxFlash(0.22, elem === 'none' ? '#ffffff' : '#' + new THREE.Color(col).getHexString());
+    if (big) fxFlash(0.42, elem === 'none' ? '#ffffff' : '#' + new THREE.Color(col).getHexString());
   } finally { NET.mute = false; }
 }
 
@@ -1788,9 +1921,10 @@ function updateEffects(dt) {
 
 const dmgLayer = document.getElementById('dmg');
 const dmgNums = [];
-function dmgNumber(pos, text, color = '#fff') {
-  if (netRec()) NET.events.push(['dmg', [pos.x, pos.y, pos.z], String(text), color]);
-  const el = document.createElement('div'); el.className = 'dn'; el.textContent = text; el.style.color = color;
+function dmgNumber(pos, text, color = '#fff', kind = '') {
+  if (netRec()) NET.events.push(['dmg', [pos.x, pos.y, pos.z], String(text), color, kind]);
+  const el = document.createElement('div'); el.className = 'dn' + (kind ? ' ' + kind : ''); el.textContent = text; el.style.color = color;
+  if (kind) el.style.rotate = `${(Math.random() - 0.5) * 16}deg`;
   dmgLayer.appendChild(el);
   dmgNums.push({ el, pos: pos.clone(), t: 0, vx: (Math.random() - 0.5) * 1.5 });
 }
@@ -1798,13 +1932,13 @@ const tmpV = new THREE.Vector3();
 function updateDmgNums(dt) {
   for (let i = dmgNums.length - 1; i >= 0; i--) {
     const d = dmgNums[i]; d.t += dt;
-    if (d.t > 0.9) { d.el.remove(); dmgNums.splice(i, 1); continue; }
+    if (d.t > 1.1) { d.el.remove(); dmgNums.splice(i, 1); continue; }
     d.pos.y += dt * 2; d.pos.x += d.vx * dt;
     tmpV.copy(d.pos).project(camera);
     d.el.style.left = ((tmpV.x + 1) / 2 * innerWidth) + 'px';
     d.el.style.top = ((1 - tmpV.y) / 2 * innerHeight) + 'px';
-    d.el.style.opacity = d.t < 0.6 ? 1 : 1 - (d.t - 0.6) / 0.3;
-    d.el.style.scale = d.t < 0.1 ? 1 + (0.1 - d.t) * 8 : 1;
+    d.el.style.opacity = d.t < 0.75 ? 1 : 1 - (d.t - 0.75) / 0.35;
+    d.el.style.scale = d.t < 0.12 ? 1 + (0.12 - d.t) * 22 : d.t < 0.22 ? 1 - (d.t - 0.12) * 1.2 : 0.88 + Math.min(0.12, (d.t - 0.22) * 0.6);   // ドンと大きく出て、少し縮んで戻る
   }
 }
 
@@ -2000,7 +2134,12 @@ class Fighter {
     } else if (this.pos.y > 0.001 || r > ARENA_R) {
       this.grounded = false;
     }
-    if (this.pos.y < -7 && !this.out) this.out = true;
+    if (this.pos.y < -7 && !this.out) {
+      this.out = true;
+      const p = new THREE.Vector3(this.pos.x, -5, this.pos.z);   // 場外：大爆発
+      burst(p, 0xff8a3d, fxCount(24), 16, 0.35, 4, 0.9); burst(p, 0xffffff, fxCount(12), 20, 0.22, 0, 0.5); ringFx(new THREE.Vector3(this.pos.x, -4, this.pos.z), 0xffd23f, 7, 0.6);
+      fxFlash(0.5, '#ffd23f'); G.shake = Math.max(G.shake, 1.2);
+    }
     this.animate(dt);
   }
 
@@ -2233,16 +2372,16 @@ class Fighter {
     for (const p of pts) p.age += dt;
     if (swinging) {
       const tip = this.m.tip.getWorldPosition(new THREE.Vector3()), hand = this.m.armPivot.getWorldPosition(new THREE.Vector3());
-      pts.push({ a: tip, b: hand.lerp(tip, 0.45), age: 0 });
+      pts.push({ a: tip.clone().add(tip.clone().sub(hand).multiplyScalar(0.5)), b: hand.lerp(tip, 0.2), age: 0 });   // 武器の先より長く・太く
     }
-    while (pts.length && (pts[0].age > 0.12 || pts.length > 10)) pts.shift();
+    while (pts.length && (pts[0].age > 0.18 || pts.length > 10)) pts.shift();
     if (!this.trail) {
       const g = new THREE.BufferGeometry();
       g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(10 * 2 * 3), 3));
       const idx = []; for (let i = 0; i < 9; i++) { const a = i * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
       g.setIndex(idx);
       const col = this.b.element === 'none' ? 0xffffff : ELEM_COLOR[this.b.element];
-      this.trail = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.55, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending }));
+      this.trail = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.9, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending }));
       this.trail.frustumCulled = false;
       this.parent.add(this.trail);
     }
@@ -2258,6 +2397,13 @@ class Fighter {
   }
 
   animate(dt) {
+    // ふっとび中：煙と光の筋（見た目だけ。オンラインでは送らず、それぞれの画面で作る）
+    const spd = Math.hypot(this.vel.x, this.vel.z);
+    if (this.hitstun > 0 && spd > 7 && !this.dead && mode === 'battle' && (this.fxT = (this.fxT || 0) - dt) <= 0) {
+      this.fxT = QUALITY.lv >= 1 ? 0.06 : 0.025;
+      const was = NET.mute; NET.mute = true;
+      try { burst(this.center(), 0xffffff, 2, 1.2, 0.3, -1, 0.45); burst(this.center(), this.color ?? 0xffd23f, 1, 0.6, 0.18, 0, 0.3); } finally { NET.mute = was; }
+    }
     const m = this.m, S = this.status;
     // 3人以上の試合：倒れた人は少ししたらステージから消す（ラウンドが変わると reset で戻る）
     this.downT = this.dead || this.out ? (this.downT || 0) + dt : 0;
@@ -2497,12 +2643,15 @@ function applyHitCore(att, tgt, dmg, knock, dir, elem, lift = 0, bySkill = false
   const big = dm >= 14 || tgt.dead;
   sfx(big ? 'big' : 'hit');
   G.hitstop = tgt.dead ? 0.25 : hitStopOf(dm);
-  G.shake = Math.max(G.shake, Math.min(0.7, dm * 0.03 + (tgt.dead ? 0.5 : 0)));
-  burst(hitPos, ELEM_COLOR[elem], 8 + Math.round(dm), 7, 0.15, 10, 0.45);
-  burst(hitPos, 0xffffff, 5, 9, 0.1, 0, 0.2);
+  G.shake = Math.max(G.shake, Math.min(1.6, (dm * 0.03 + (tgt.dead ? 0.5 : 0)) * FXB.shake));
+  burst(hitPos, ELEM_COLOR[elem], fxCount(8 + Math.round(dm)), 11, 0.24, 10, 0.55);
+  burst(hitPos, 0xffffff, fxCount(5), 14, 0.16, 0, 0.25);
+  if (big) burst(hitPos, 0xffd23f, fxCount(10), 16, 0.2, 6, 0.6);   // 大ダメージは金の火花も
+  ringFx(new THREE.Vector3(tgt.pos.x, 0.05, tgt.pos.z), big ? 0xffd23f : 0xffffff, 1.6 + dm * 0.12, 0.35);   // 足元の衝撃波
   fxHit(hitPos, dir, elem, big || breaker);
-  if (tgt.dead) { G.slowmo = 0.8; fxFlash(0.5); }   // KOの瞬間はスローモーション
-  dmgNumber(hitPos.clone().setY(hitPos.y + 0.8), Math.round(dm), big ? '#ffd23f' : '#fff');
+  if (!big) fxFlash(0.07);
+  if (tgt.dead) { G.slowmo = 0.8; fxFlash(0.65); }   // KOの瞬間はスローモーション
+  dmgNumber(hitPos.clone().setY(hitPos.y + 0.8), Math.round(dm), big ? '#ffd23f' : '#fff', big ? 'big' : 'num');
 }
 
 // コンボ抜け：上限まで受けたら、少しの間無敵になって仕切り直し
@@ -2608,7 +2757,10 @@ function cpuInput(f, o, dt) {
   const dx = o.pos.x - f.pos.x, dz = o.pos.z - f.pos.z, d = Math.hypot(dx, dz) || 0.01;
   const r = Math.hypot(f.pos.x, f.pos.z) || 0.01;
   if (G.tut && G.tut.step < TUTORIAL.length - 1) return tutDummyInput(f, o, dt);
-  const w = f.st.weapon, L = CPU_LV[f.cpuLv ?? CPU_BASE_LV], k = f.boost || 0;
+  // 武器ごとの手かげん（おに）：wpn＝自分の武器で値を置きかえ、vs＝相手の武器で値に掛ける
+  const L0 = CPU_LV[f.cpuLv ?? CPU_BASE_LV], L = L0.wpn || L0.vs ? { ...L0, ...L0.wpn?.[f.b?.wHead] } : L0;   // 写してから変える（CPU_LV は書きかえない）
+  if (L0.vs?.[o.b?.wHead]) for (const [key, m] of Object.entries(L0.vs[o.b.wHead])) L[key] = (L[key] || 0) * m;
+  const w = f.st.weapon, k = f.boost || 0;
   // 場外からの復帰
   if (r > ARENA_R - 0.4 || (!f.grounded && r > ARENA_R - 2)) {
     res.mx = -f.pos.x / r; res.mz = -f.pos.z / r;
@@ -2798,23 +2950,39 @@ function prewarm() {
 }
 // 今の試合の種類（分析用）
 function matchMode() { return NET.role ? 'online' : G.tut ? 'tutorial' : G.endless ? 'endless' : G.watch ? 'watch' : !G.vsCPU ? '2p' : G.mode || 'cpu'; }
+// ネットにつながっていないときは試合を始めない（アプリ版。広告を出すため。2026-10-25 ユーザー「機内モードのとき広告が出ないので修正」）
+//   開発中は ?offline で試せる（window.__online = true でつながったことにする）
+const OFFLINE_TEST = PLATFORM === 'dev' && /[?&]offline\b/.test(location.search);
+const needNet = () => (PLATFORM === 'ios' && ADS.enabled) || OFFLINE_TEST;
+const isOffline = () => OFFLINE_TEST ? !window.__online : !navigator.onLine;
+function askNet() {
+  track('offline_block');
+  const box = sheet(`<b>📶 ネットにつないでね</b><p>バトルフェーズは、ネットにつながっているときに遊べます。機内モードをオフにするか、Wi-Fi・モバイルデータを確かめてね。</p>
+    <div class="row"><button class="tool" data-x="title">タイトルへ</button><button class="tool sel" data-x="retry">もう一度ためす</button></div>`);
+  box.querySelector('[data-x=title]').onclick = () => { sfx('select'); closeSheet(); G.watch = false; G.endless = false; endTutorial(); netClose(); goTitle(); };
+  box.querySelector('[data-x=retry]').onclick = () => { sfx('go'); closeSheet(); startBattle(); };
+}
 function startBattle() {
+  if (needNet() && isOffline() && !SHOOT) { askNet(); return; }
   clearTitleDemo();
   for (const f of G.fighters) f.dispose();
   for (const p of G.projectiles) dropProj(p);
   G.projectiles = [];
   if (G.endless || G.tut || G.watch || !G.vsCPU) G.rule = 'duel';   // 4人対戦は CPU対戦・オンラインだけ
-  if (G.endless) { setStage(STAGES[stageNo(G.streak)]); G.builds[1] ??= stageBuild(stageNo(G.streak)); }
-  else setStage(STAGES[0]);
+  if (G.endless) { setStage(STAGES[stageNo(G.streak)]); G.builds[1] ??= stageBuild(stageNo(G.streak), G.streak % 10 === 9); }
+  else setStage(STAGES[SHOOT ? Math.min(STAGES.length - 1, +SHOOT.floor || 0) : 0]);
+  if (SHOOT && G.watch && +SHOOT.floor > 0) G.builds[1] = stageBuild(+SHOOT.floor, true);   // 撮影：その階層の敵（形・特殊な必殺技）
   if (!NET.role) { G.builds.length = RULES[G.rule].n; for (let i = 0; i < G.builds.length; i++) G.builds[i] ??= randomBuild(); }   // 空いている席は CPU（キャラはおまかせ）
   // CPU が動かすキャラ：オンラインは人がいない席、それ以外は 2人目から（ふたりでモードは2人目も人）
   const isCpu = i => G.watch || (NET.role ? !G.humans.includes(i) : i > 0 && G.vsCPU);
   G.fighters = G.builds.map((b, i) => new Fighter(b, i, isCpu(i), scene, teamOf(i)));
   prewarm();
   if (G.streak < 0) { G.streak = 0; G.revived = 0; }   // 新しい挑戦（つくりなおしてから始めたときも）は復活の回数も元に戻す
+  if (G.endless) saveRun(true);   // 試合中に閉じたら、つぎに開いたとき負けにする
   if (!G.watch) for (const f of G.fighters) if (f.cpu) f.cpuLv = G.endless ? endlessLv() : G.cpuLv;
+  if (SHOOT) for (const f of G.fighters) f.cpuLv = Math.min(3, Math.max(0, SHOOT.lv === undefined ? 2 : +SHOOT.lv));
   for (const f of G.fighters) if (f.b.special) f.sp = 0.5;
-  if (G.endless && G.streak >= ENDLESS_BOOST.from) applyBoost(G.fighters[1], G.streak - ENDLESS_BOOST.from + 1);
+  if (G.endless && endlessBoost(G.streak)) applyBoost(G.fighters[1], endlessBoost(G.streak));
   G.matchT0 = performance.now(); G.roundLog = [];
   if (!G.watch) {
     const me = G.builds[NET.role ? NET.me : 0] || {};
@@ -3036,7 +3204,7 @@ function updateBattle(dt) {
       $('winName').style.color = PCSS[champ];
       showResult(champ);
       show('result');
-      if (NET.role === 'host') netSend({ t: 'over', champ, w: G.wins });
+      if (NET.role === 'host') { netSend({ t: 'over', champ, w: G.wins }); netTrackQuality(); }
       mode = 'result';
       if (G.watch) setTimeout(() => { if (mode === 'result' && G.watch) { G.builds = [randomBuild(), randomBuild()]; startBattle(); } }, 3500);
     } else { G.round++; startRound(); }
@@ -3542,11 +3710,15 @@ function show(id, keepHud = false) {
 }
 
 // CPUのつよさ（タイトルで選ぶ。勝ち抜きモードでは使わない）
-G.cpuLv = Math.min(CPU_LV.length - 1, Math.max(0, loadNum(LS_CPU, 1)));
+G.cpuLv = Math.min(CPU_LV.filter(L => !L.hidden).length - 1, Math.max(0, loadNum(LS_CPU, 1)));
+// CPUのつよさ・ルールの箱（ホームでは見せず、練習試合のシートに移して使う）
+const CPU_BOX = $('cpuLv'), RULE_BOX = $('ruleSel');
 function buildCpuLv() {
-  const box = $('cpuLv');
+  const box = CPU_BOX;
   box.innerHTML = '<span class="lb">CPUのつよさ</span>';
+  $('practiceSub').textContent = `CPU：${CPU_LV[G.cpuLv]?.name || ''}`;
   CPU_LV.forEach((L, i) => {
+    if (L.hidden) return;
     const b = document.createElement('button');
     b.className = 'opt' + (i === G.cpuLv ? ' sel' : ''); b.textContent = L.name;
     b.onclick = () => { sfx('select'); G.cpuLv = i; saveNum(LS_CPU, i); buildCpuLv(); };
@@ -3558,7 +3730,7 @@ buildCpuLv();
 const LS_RULE = 'battlephase_rule_v1';
 G.cpuRule = (() => { try { return RULES[localStorage.getItem(LS_RULE)] ? localStorage.getItem(LS_RULE) : 'duel'; } catch { return 'duel'; } })();
 function buildRuleSel() {
-  const box = $('ruleSel');
+  const box = RULE_BOX;
   box.innerHTML = '<span class="lb">ルール</span>';
   for (const [k, r] of Object.entries(RULES)) {
     const b = document.createElement('button');
@@ -3568,6 +3740,7 @@ function buildRuleSel() {
   }
 }
 buildRuleSel();
+if (PLATFORM === 'ios' && !FOUR_IN_APP) { RULE_BOX.style.display = 'none'; G.cpuRule = 'duel'; }   // .cpu-lv の display:flex が hidden より強いので style で消す
 
 // ===== 名前の伏せ字・通報・ブロック（App Store ガイドライン 1.2：オンラインで知らない人の名前が見えるため） =====
 const LS_PID = 'battlephase_pid_v1', LS_BLOCK = 'battlephase_block_v1', LS_ONRULES = 'battlephase_onrules_v1';
@@ -3613,7 +3786,7 @@ function saveBlocks(a) { try { localStorage.setItem(LS_BLOCK, JSON.stringify(a.s
 const isBlocked = pid => !!pid && loadBlocks().some(b => b.pid === pid);
 function addBlock(pid, name) { if (!okPid(pid) || isBlocked(pid)) return; saveBlocks([...loadBlocks(), { pid, name: String(name).slice(0, 10), at: Date.now() }]); }
 const escH = t => String(t).replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`);
-function sheet(html) { const box = $('sheetBox'); box.innerHTML = html; $('sheet').hidden = false; box.scrollTop = 0; return box; }
+function sheet(html, cls = '') { const box = $('sheetBox'); box.className = 'mbox' + (cls ? ' ' + cls : ''); box.innerHTML = html; $('sheet').hidden = false; box.scrollTop = 0; return box; }
 function closeSheet() { $('sheet').hidden = true; }
 const agreedRules = () => { try { return localStorage.getItem(LS_ONRULES) === '1'; } catch { return true; } };
 // オンライン対戦のルール（はじめて開いたときに同意してもらう）
@@ -3720,14 +3893,80 @@ async function sendScore(name = rankName()) {
   if ((st === 409 || st === 400) && name === rankName()) try { localStorage.removeItem(LS_RANKNAME); } catch {}
   return st;
 }
+// ===== Game Center（アプリでサインインしている人は、全国・友達・自分のまわりを Game Center で見る。ios/App/App/GameCenterPlugin.swift） =====
+// サインインしていない人・Web 版は、下の中継サーバーのランキング（名前を登録した人だけ）
+const GC_IDS = { all: 'bp.streak.alltime', week: 'bp.streak.weekly' };   // App Store Connect のランキング ID（今週は毎週月曜 0:00 日本時間にリセット）
+const GC = { plugin: PLATFORM === 'ios' ? window.Capacitor?.Plugins?.GameCenter : null, on: false, alias: '', canSignIn: false };
+if (PLATFORM === 'dev' && /[?&]gcmock\b/.test(location.search)) GC.plugin = {   // 開発用：localhost で ?gcmock を付けると見せかけの Game Center（画面の確認用。?gcmock=out でサインインしていない状態）
+  addListener: (e, f) => Promise.resolve({ remove() {} }),
+  signIn: async () => ({ authenticated: !/gcmock=out/.test(location.search), alias: 'テストプレイヤー', canSignIn: true }),
+  submit: async () => {},
+  load: async ({ id, scope, range, count }) => {
+    const n = scope === 'friends' ? 4 : range === 'around' ? 7 : id === GC_IDS.week ? 6 : count, r0 = range === 'around' ? 120 : 1;   // 今週は6人（空きの枠の確認用）
+    const NM = ['ソラ', 'まっちゃ', 'Kai', 'ぴよ丸', 'ゆうと', 'RIN', 'こたつ', 'ハル', 'Mint', 'たいが', 'みお', 'ガク', 'ねこ太', 'Leo', 'さくら', 'ジン', 'もち', 'ユキ', 'Ray', 'あおい'];
+    const entries = Array.from({ length: n }, (_, i) => ({ rank: r0 + i, score: Math.max(1, 63 - (r0 + i) * 3), name: i === 3 ? 'あなた' : NM[(r0 + i) % NM.length], me: i === 3 }));
+    return { entries, total: 999, me: { rank: r0 + 3, score: Math.max(1, 63 - (r0 + 3) * 3) } };
+  },
+};
+function gcState(st) {
+  const was = GC.on;
+  GC.on = !!st?.authenticated; GC.alias = st?.alias || ''; GC.canSignIn = !!st?.canSignIn;
+  if (GC.on && !was) { gcSubmit(GC_IDS.all, loadNum(LS_STREAK, 0)); gcSubmit(GC_IDS.week, weekBest()); }   // サインインしたら、端末の自己ベストと今週のベストを送っておく
+}
+function gcSubmit(id, n) { if (GC.on && n > 0) GC.plugin.submit({ score: n, ids: [id] }).catch(() => {}); }   // Game Center が前の記録と比べて大きいほうを残す
+async function gcInit() {
+  if (!GC.plugin) return;
+  try { GC.plugin.addListener('authChange', gcState); gcState(await GC.plugin.signIn({})); } catch { /* Game Center が使えない */ }
+}
+gcInit();
 let rankTab = 'all';
+// ランキングの画面の上半分（見出しと 全期間／今週）
+const rankHead = sub => `<div class="rk-head"><span class="cup">🏆</span><b>連勝ランキング</b><small>${sub}</small></div>
+    <div class="rk-tabs"><button class="tool${rankTab === 'all' ? ' sel' : ''}" data-t="all">全期間</button><button class="tool${rankTab === 'week' ? ' sel' : ''}" data-t="week">今週</button></div>`;
+// 一覧：rows は { rank, name, n, me }。10位までは空いていても枠を出す（のりたくなるように）。flag(x, k) は行の右のボタン
+function rankRows(rows, flag = () => '', wait = false) {
+  const slots = rows.concat(Array(Math.max(0, 10 - rows.length)).fill(null));
+  return slots.map((x, k) => {
+    const d = `style="--d:${k * 50}ms"`;
+    if (!x) return `<div class="rk empty${wait ? ' wait' : ''}" ${d}><span class="no">${k + 1}</span><span class="nm">？？？</span><span class="n">ー</span></div>`;
+    const top = x.rank <= 3 ? ` top t${x.rank}` : '';
+    return `<div class="rk${top}${x.me ? ' me' : ''}" ${d}><span class="no">${x.rank}</span><span class="nm">${x.rank === 1 ? '<span class="crown">👑</span>' : ''}${escH(x.name)}</span><span class="n">${x.n}連勝</span>${flag(x, k)}</div>`;
+  }).join('');
+}
+// Game Center のランキング（全国）。アプリではこれだけを出す（名前登録のランキングは Web 版で見るだけ。2026-10-27 ユーザーの判断）
+async function openGcRanking(my) {
+  const me = GC.on ? `<p>あなた：<b>${escH(GC.alias)}</b> <span class="rk-pos"></span></p><small class="rk-note"></small><small>名前は Game Center のニックネームです（iPhone の設定 → Game Center で変えられます）</small>`
+    : `<p class="rk-src">${GC.canSignIn ? '<button class="tool sel" data-x="gcin">🎮 Game Center にサインイン</button><br>' : ''}Game Center にサインインすると、全国のランキングを見て、記録をのせられます${GC.canSignIn ? '' : '（iPhone の設定 → Game Center）'}</p>`;
+  const box = sheet(`${rankHead('全国（Game Center）・今週は月曜にリセット')}
+    <div class="rk-list">${rankRows([], undefined, GC.on)}</div>
+    <div class="rk-me">${me}</div>
+    <div class="row"><button class="tool" data-x="no">とじる</button></div>`, 'rank');
+  box.querySelector('[data-x=no]').onclick = closeSheet;
+  box.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { sfx('select'); rankTab = b.dataset.t; track('rank_tab', { source: 'gc', period: rankTab }); openRanking(); });
+  const gci = box.querySelector('[data-x=gcin]');
+  if (gci) gci.onclick = async () => {
+    sfx('select'); track('gc_signin');
+    const off = await GC.plugin.addListener('authChange', st => { if (st.authenticated && my === openRanking.n && !$('sheet').hidden) openRanking(); off.remove(); });
+    GC.plugin.signIn({ present: true }).catch(() => off.remove());
+  };
+  if (!GC.on) return;
+  let d = null;
+  try { d = await GC.plugin.load({ id: GC_IDS[rankTab], scope: 'global', range: 'top', count: 20 }); } catch { /* 下で知らせる */ }
+  if (my !== openRanking.n || $('sheet').hidden) return;
+  const list = box.querySelector('.rk-list');
+  if (!d) { list.innerHTML = '<p>ランキングを読みこめませんでした。ネットを確かめてね</p>'; return; }
+  const has = d.me?.rank > 0;
+  box.querySelector('.rk-pos').textContent = has ? `… ${d.me.rank}位（${d.me.score}連勝）` : '… まだ記録なし';
+  box.querySelector('.rk-note').textContent = has ? '' : '勝ち抜きで1勝すると、ランキングにのります';
+  list.innerHTML = rankRows(d.entries.map(x => ({ rank: x.rank, name: x.name, n: x.score, me: x.me })));
+}
 async function openRanking(edit = false) {
   const my = openRanking.n = (openRanking.n || 0) + 1;
-  const box = sheet(`<b>🏅 連勝ランキング</b><p style="font-size:12px;opacity:.8">勝ち抜きモードで何連勝したか。今週は月曜にリセット</p>
-    <div class="reasons"><button class="tool${rankTab === 'all' ? ' sel' : ''}" data-t="all">全期間</button><button class="tool${rankTab === 'week' ? ' sel' : ''}" data-t="week">今週</button></div>
-    <div class="rk-list"><p>読みこみ中…</p></div>
+  if (GC.plugin && !edit) return openGcRanking(my);   // アプリ（Game Center が使えないときだけ、下の名前登録のランキング）
+  const box = sheet(`${rankHead('名前を登録した人・今週は月曜にリセット')}
+    <div class="rk-list">${rankRows([], undefined, true)}</div>
     <div class="rk-me"></div>
-    <div class="row"><button class="tool" data-x="no">とじる</button></div>`);
+    <div class="row"><button class="tool" data-x="no">とじる</button></div>`, 'rank');
   box.querySelector('[data-x=no]').onclick = closeSheet;
   box.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { sfx('select'); rankTab = b.dataset.t; openRanking(); });
   const name = rankName(), me = box.querySelector('.rk-me');
@@ -3753,7 +3992,7 @@ async function openRanking(edit = false) {
       if (my === openRanking.n && !$('sheet').hidden) openRanking();
     };
   } else {
-    me.innerHTML = `<div class="row"><p style="flex:1">あなた：<b>${escH(name)}</b> <span class="rk-pos"></span></p><button class="tool" data-x="edit">名前を変える</button></div>`;
+    me.innerHTML = `<div class="row"><p style="flex:1">あなた：<b>${escH(name)}</b> <span class="rk-pos"></span><small class="rk-note"></small></p><button class="tool" data-x="edit">名前を変える</button></div>`;
     me.querySelector('[data-x=edit]').onclick = () => { sfx('select'); openRanking(true); };
   }
   if (name && !edit && !IS_WEB) {   // 前に送れなかった記録もここで送る
@@ -3766,19 +4005,19 @@ async function openRanking(edit = false) {
   const list = box.querySelector('.rk-list');
   if (!d) { list.innerHTML = '<p>ランキングを読みこめませんでした。ネットを確かめてね</p>'; return; }
   const pos = box.querySelector('.rk-pos');
-  if (pos && !IS_WEB) pos.textContent = d.me ? `… ${d.me.rank}位（${d.me.n}連勝）` : '… まだ記録なし（1勝するとのります）';
+  if (pos && !IS_WEB) { pos.textContent = d.me ? `… ${d.me.rank}位（${d.me.n}連勝）` : '… まだ記録なし'; box.querySelector('.rk-note').textContent = d.me ? '' : '勝ち抜きで1勝すると、ランキングにのります'; }
   // 同じ連勝数は同じ順位。ブロックした人は出さない
   let rank = 0;
   const rows = d.top.map((x, i) => ({ ...x, rank: i && x.n === d.top[i - 1].n ? rank : (rank = i + 1) })).filter(x => x.id === d.myId || !isBlocked(x.id));
-  list.innerHTML = rows.map((x, k) => `<div class="rk${x.id === d.myId ? ' me' : ''}"><span class="no">${['🥇', '🥈', '🥉'][x.rank - 1] || x.rank}</span><span class="nm">${escH(maskName(x.name))}</span><span class="n">${x.n}連勝</span>${x.id === d.myId ? '' : `<button class="tool" data-r="${k}" aria-label="通報">🚩</button>`}</div>`).join('')
-    || '<p>まだ記録がありません。最初の1人になろう！</p>';
+  list.innerHTML = rankRows(rows.map(x => ({ rank: x.rank, name: maskName(x.name), n: x.n, me: x.id === d.myId })),
+    (x, k) => x.me ? '' : `<button class="tool" data-r="${k}" aria-label="通報">🚩</button>`);
   list.querySelectorAll('[data-r]').forEach(b => b.onclick = () => {
     const x = rows[b.dataset.r];
     openReport({ name: maskName(x.name), raw: x.name, rid: x.id, pid: '', back: () => openRanking(),
       block: () => { addBlock(x.id, x.name); toast(`${maskName(x.name)} をブロックしました（ランキングに出なくなります）`, 2600); openRanking(); } });
   });
 }
-$('rankGo').onclick = $('rankBtn').onclick = () => { sfx('select'); track('rank_open'); openRanking(); };
+$('rankGo').onclick = $('rankBtn').onclick = () => { sfx('select'); track('rank_open', { source: GC.plugin ? (GC.on ? 'gc' : 'gc_out') : IS_WEB ? 'web' : 'app' }); openRanking(); };
 
 // ===== オンライン対戦 =====
 const netRec = () => NET.role === 'host' && !NET.mute && (mode === 'battle' || mode === 'result');
@@ -3811,7 +4050,7 @@ function netClose() {
 }
 // 部屋につなぐ（create のときは新しく作る）。つながったあとのやりとりは netOnData
 function netConnect(code, create) {
-  const ws = new WebSocket(RELAY.replace(/^http/, 'ws') + `/ws?room=${code}${create ? '&create=1' : ''}&pid=${MY_PID}`);
+  const ws = new WebSocket(RELAY.replace(/^http/, 'ws') + `/ws?room=${code}${create ? `&create=1&max=${ONLINE_MAX}` : ''}&pid=${MY_PID}`);
   NET.ws = ws; NET.code = code;
   let ok = false;
   ws.onmessage = e => {
@@ -3866,6 +4105,7 @@ function renderLobby() {
   }).join('');
   const box = $('onRules');
   box.innerHTML = '<span class="lb">ルール</span>';
+  box.style.display = ONLINE_MAX <= 2 ? 'none' : '';   // 1対1だけのときは選ばせない
   for (const [key, r] of Object.entries(RULES)) {
     const b = document.createElement('button');
     b.className = 'opt' + (key === G.rule ? ' sel' : ''); b.textContent = key === 'ffa' ? 'バトロワ' : r.name;
@@ -3874,12 +4114,12 @@ function renderLobby() {
     box.appendChild(b);
   }
   $('onStart').hidden = !host; $('onStart').disabled = k < 2;
-  onStatus(host ? (k < 2 ? 'このコードを友達に伝えてね。入ってくるのを待っています…' : '集まったら「キャラ作りへ」を押してね。空いている席は CPU が入るよ')
+  onStatus(host ? (k < 2 ? 'このコードを友達に伝えてね。入ってくるのを待っています…' : (ONLINE_MAX <= 2 ? '友達が入ったよ！「キャラ作りへ」を押してね' : '集まったら「キャラ作りへ」を押してね。空いている席は CPU が入るよ'))
                 : 'ホストが始めるのを待っています…');
 }
 function netJoined(slot) {
   if (NET.role !== 'host') { renderLobby(); return; }
-  if (NET.slots.length > RULES[G.rule].n) G.rule = 'ffa';   // 1対1に3人目が来たらバトルロイヤルへ
+  if (NET.slots.length > RULES[G.rule].n) G.rule = 'ffa';   // 1対1に3人目が来たらバトルロイヤルへ（前の版の Web で作った4人の部屋のとき）
   netLobby();
   sfx('select'); renderLobby();
 }
@@ -3997,6 +4237,8 @@ function netStartBattle() {
   NET.lastRx = performance.now(); NET.rx = Object.fromEntries(G.humans.map(i => [i, performance.now()]));
   for (const m of NET.proj.values()) { scene.remove(m); disposeDeep(m); }
   NET.proj = new Map(); NET.snap = null; NET.remote = {}; NET.edges = {}; NET.events = [];
+  NET.ack = {}; NET.iseq = 0; NET.pend = []; NET.inp = null;
+  NET.rtts = []; NET.gaps = []; NET.lastS = 0; NET.pingT = 0; NET.atkLocal = null; $('netPing').hidden = true;
   startBattle();
   const t = teamOf(NET.me);
   toast(G.rule === 'team' ? `あなたは${PNAME[t]}チームだよ` : `あなたは${PNAME[t]}だよ`, 2500);
@@ -4020,26 +4262,32 @@ function netOnData(m) {
     netStartBattle();
   }
   else if (m.t === 'i' && host) {
-    NET.remote[from] = m; NET.rx[from] = performance.now();
+    NET.remote[from] = m; NET.rx[from] = performance.now(); if (m.n) NET.ack[from] = m.n;   // 何番の操作まで受け取ったか（ゲストの予測の答え合わせ用）
     const e = NET.edges[from] ??= {};
     for (const k of ['attack', 'skill', 'jump']) if (m[k]) e[k] = true;   // 押した瞬間は取りこぼさない
   }
   else if (m.t === 's' && !host) {
+    const now = performance.now(); if (NET.lastS) { NET.gaps.push(now - NET.lastS); if (NET.gaps.length > 600) NET.gaps.shift(); } NET.lastS = now;
     if (NET.snap && NET.snap.ev) m.ev = NET.snap.ev.concat(m.ev || []);   // 映す前に次が来ても演出は落とさない
     NET.snap = m;
   }
   else if (m.t === 'over' && !host) {
+    netTrackQuality();
     G.wins = m.w; G.phase = 'over';
     $('winName').textContent = teamName(m.champ);
     $('winName').style.color = PCSS[m.champ];
     showResult(m.champ); show('result'); mode = 'result';
   }
   else if (m.t === 'again' && host) { NET.again[from] = true; netTryRestart(); }
+  else if (m.t === 'pg' && host) { netSend({ t: 'po', ts: m.ts }); if (m.r) { netShowPing(m.r); NET.rtts.push(m.r); if (NET.rtts.length > 300) NET.rtts.shift(); } }   // 通信の速さ（ゲストが測る）
+  else if (m.t === 'po' && !host) { const r = performance.now() - m.ts; NET.rtts.push(r); if (NET.rtts.length > 300) NET.rtts.shift(); netShowPing(r); }
 }
 // ホスト：ゲストの操作（押した瞬間はまとめて1回分）
 function netTakeInput(i) {
   const r = NET.remote[i];
   if (!r) return NO_INPUT;
+  // 操作が 0.35 秒届かなければ「何も押していない」にする（電波が切れたとき、最後の「歩く」のまま場外へ歩いていかないように）
+  if (performance.now() - (NET.rx[i] ?? 0) > 350) { NET.edges[i] = {}; return NO_INPUT; }
   const e = NET.edges[i] || {};
   const out = { mx: r.mx, mz: r.mz, guard: r.guard, attackHeld: r.attackHeld, attack: !!e.attack, skill: !!e.skill, jump: !!e.jump };
   NET.edges[i] = {};
@@ -4055,28 +4303,79 @@ function netSendSnapshot() {
   const fs = f => [f.pos.x, f.pos.y, f.pos.z, f.vel.x, f.vel.y, f.vel.z, f.yaw, f.hp, f.sp, f.gm, NET_STATES.indexOf(f.state), f.atkT, f.chargeT, f.charged,
     f.hitstun, f.guarding ? 1 : 0, f.guardAge, f.dead ? 1 : 0, f.out ? 1 : 0, f.invuln, f.dodgeT, f.flash, f.guardFlash || 0, f.grounded ? 1 : 0,
     f.status.burn, f.status.poison, f.status.slow, f.status.stun, f.status.shield];
-  netSend({ t: 's', ph: G.phase, r: G.round, w: G.wins, k: G.shake, f: G.fighters.map(fs),
+  netSend({ t: 's', ph: G.phase, r: G.round, w: G.wins, k: G.shake, f: G.fighters.map(fs), q: G.fighters.map((f, i) => NET.ack[i] || 0),
     p: G.projectiles.map(p => [p.id, p.m.position.x, p.m.position.y, p.m.position.z, p.r, p.color]), ev: NET.events });
   NET.events = [];
 }
 // ゲスト：操作を送り、届いた状態を映す
+// 通信の速さ：画面の上に小さく出す（緑 100ms 未満・黄 200ms 未満・赤）。試合の終わりに分析へ（online_quality）
+function netShowPing(r) {
+  const el = $('netPing'); if (!el) return;
+  el.hidden = false; el.textContent = `📶 ${Math.round(r)}ms`;
+  el.className = 'ping' + (r < 100 ? '' : r < 200 ? ' mid2' : ' bad');
+  NET.lastRtt = r;
+}
+function netTrackQuality() {
+  const q = (a, p) => { if (!a.length) return null; const s = [...a].sort((x, y) => x - y); return Math.round(s[Math.min(s.length - 1, Math.floor(s.length * p))]); };
+  track('online_quality', { role: NET.role, rtt_med: q(NET.rtts || [], 0.5), rtt_p90: q(NET.rtts || [], 0.9), gap_p90: q(NET.gaps || [], 0.9), gap_max: q(NET.gaps || [], 1), n: (NET.rtts || []).length });
+}
+// ゲスト：自分のキャラを動かせる状態か（やられ中・攻撃中・回避中などはホストの答えだけを使う）
+//   攻撃・必殺・ジャンプ・ガードを押している間と押した直後（0.4秒）も予測しない（ホストでは止まる・回避する・跳ぶなど動きが変わり、あとで引き戻されるため）
+const netCanPredict = f => !f.dead && !f.out && f.hitstun <= 0 && f.status.stun <= 0 && f.state === 'idle' && G.phase === 'fight' && performance.now() - (NET.actT || 0) > 400;
+// ゲスト：横の移動だけ、ホストと同じ式で動かす（Fighter.update の移動の部分と同じ）。replay は答え合わせのやり直し（向きは変えない）
+function netPredictMove(f, mx, mz, dt, replay = false) {
+  if (!netCanPredict(f)) return false;
+  const sp = f.st.speed * (f.status.slow > 0 ? 0.55 : 1) * (f.guarding ? 0.35 : 1);
+  const k = Math.min(1, (f.grounded ? 14 * (STAGE.grip || 1) : 8) * dt);
+  f.vel.x += (mx * sp - f.vel.x) * k;
+  f.vel.z += (mz * sp - f.vel.z) * k;
+  f.pos.x += f.vel.x * dt; f.pos.z += f.vel.z * dt;
+  if (!replay && Math.hypot(mx, mz) > 0.15 && !f.guarding) { f.targetYaw = Math.atan2(mx, mz); f.yaw = angleLerp(f.yaw, f.targetYaw, Math.min(1, dt * 14)); }
+  return true;
+}
 function netGuestUpdate(dt) {
   if (announceTimer > 0) { announceTimer -= dt; if (announceTimer <= 0) announceEl.innerHTML = ''; }
+  const me = G.fighters[NET.me];
   if (mode === 'battle') {
     // 操作も毎秒30回まで。そのあいだに押したボタンは取りこぼさずに次でまとめて送る
-    const r = readInput(0, false), h = NET.held;
+    const r = NET.inp = readInput(0, false), h = NET.held;
+    if (r.attack || r.skill || r.jump || r.guard || r.attackHeld) NET.actT = performance.now();
     for (const k of ['attack', 'skill', 'jump']) if (r[k]) h[k] = true;
     const now = performance.now();
     if (now - NET.sendT >= 1000 / 30 - 3) {
       NET.sendT = now;
-      netSend({ t: 'i', mx: r.mx, mz: r.mz, attack: !!h.attack, skill: !!h.skill, jump: !!h.jump, guard: !!r.guard, attackHeld: !!r.attackHeld });
+      const n = ++NET.iseq;
+      netSend({ t: 'i', n, mx: r.mx, mz: r.mz, attack: !!h.attack, skill: !!h.skill, jump: !!h.jump, guard: !!r.guard, attackHeld: !!r.attackHeld });
+      NET.pend.push({ n, mx: r.mx, mz: r.mz, dur: 0 });
+      if (NET.pend.length > 90) NET.pend.shift();
       NET.held = {};
+    }
+    if (NET.pend.length) NET.pend[NET.pend.length - 1].dur += dt;   // 今の操作が効いている時間
+    if (now - NET.pingT > 1000) { NET.pingT = now; netSend({ t: 'pg', ts: now, r: Math.round(NET.lastRtt || 0) }); }
+    // 攻撃も押した瞬間に振り始める（見た目だけ。当たり・ダメージはホストが決める）
+    if (r.attack && me && !me.dead && me.hitstun <= 0 && me.status.stun <= 0 && me.state === 'idle' && G.phase === 'fight' && NET.predict && !NET.atkLocal) {
+      NET.atkLocal = { atkT: 0 };
+      me.state = 'attack'; me.atkT = 0; me.charged = 0; me.chain = 0;
+      if (Math.hypot(r.mx, r.mz) > 0.3) me.yaw = me.targetYaw = Math.atan2(r.mx, r.mz);
+    }
+    if (NET.atkLocal && me) {
+      const wt = { ...me.st.weapon, ...me.timing() };
+      NET.atkLocal.atkT += dt;
+      if (NET.atkLocal.atkT > wt.wind + wt.active + wt.recover || me.hitstun > 0 || me.dead) NET.atkLocal = null;
+      else if (me.state === 'attack') me.atkT = Math.max(me.atkT, NET.atkLocal.atkT);
     }
   }
   const sn = NET.snap;
-  if (!sn && mode === 'battle') for (const f of G.fighters) if (!f.dead) f.pos.addScaledVector(f.vel, dt);   // 次の状態が届くまでは、今の速さで動かしておく
+  if (!sn && mode === 'battle') for (const f of G.fighters) {
+    if (f.dead) continue;
+    // 自分のキャラは、押した操作で先に動かす（ホストの答えを待たない）。ほかは今の速さで動かしておく
+    if (f === me && NET.predict && netPredictMove(f, NET.inp.mx, NET.inp.mz, dt)) { f.pos.y += f.vel.y * dt; continue; }
+    f.pos.addScaledVector(f.vel, dt);
+  }
   if (sn) {
     NET.snap = null;
+    const before = me ? me.pos.clone() : null;
+    const prevPos = G.fighters.map(f => f.pos.clone());
     if (mode === 'battle') { if (sn.ph === 'intro' && G.phase !== 'intro') $('roundStars').hidden = true; G.phase = sn.ph; G.round = sn.r; G.wins = sn.w; }   // 次のラウンドが始まったら星を消す
     G.shake = Math.max(G.shake, sn.k || 0);
     sn.f.forEach((a, i) => {
@@ -4087,6 +4386,25 @@ function netGuestUpdate(dt) {
       f.flash = a[21]; f.guardFlash = a[22]; f.grounded = !!a[23];
       Object.assign(f.status, { burn: a[24], poison: a[25], slow: a[26], stun: a[27], shield: a[28] });
     });
+    // 自分のキャラ：ホストの位置に、まだホストに届いていない操作の分を足す。ずれは少しずつ寄せる（ガクッと飛ばない）
+    NET.predict = !!sn.q && mode === 'battle';   // 前の版のホスト（q を送らない）とは予測しない
+    // 相手のキャラは、届いた位置へ半分ずつ寄せる（届く間隔がばらついてもカクつかない。大きく離れたとき＝ふっとび・ラウンドの始まりはそのまま）
+    if (mode === 'battle') G.fighters.forEach((f, i) => {
+      if (f === me || f.dead || !prevPos[i]) return;
+      const p = prevPos[i], d = Math.hypot(f.pos.x - p.x, f.pos.z - p.z);
+      if (d < 2) { f.pos.x = p.x + (f.pos.x - p.x) * 0.5; f.pos.z = p.z + (f.pos.z - p.z) * 0.5; }
+    });
+    // 自分の攻撃を先に振っているあいだは、ホストの返事が来るまで振りを続ける
+    if (me && NET.atkLocal && me.hitstun <= 0 && (me.state === 'idle' || me.state === 'attack')) { const hostAtk = me.state === 'attack'; me.state = 'attack'; me.atkT = hostAtk ? Math.max(me.atkT, NET.atkLocal.atkT) : NET.atkLocal.atkT; }
+    if (me && NET.predict) {
+      const ack = sn.q[NET.me] || 0;
+      while (NET.pend.length && NET.pend[0].n <= ack) NET.pend.shift();
+      if (netCanPredict(me)) {
+        for (const e of NET.pend) for (let t = e.dur; t > 1e-4; t -= 1 / 60) netPredictMove(me, e.mx, e.mz, Math.min(1 / 60, t), true);
+        const d = Math.hypot(before.x - me.pos.x, before.z - me.pos.z);
+        if (d < 3) { me.pos.x = before.x + (me.pos.x - before.x) * 0.35; me.pos.z = before.z + (me.pos.z - before.z) * 0.35; }
+      }
+    }
     // 弾：番号ごとに作る・動かす・消す
     const alive = new Set();
     for (const [id, x, y, z, r, color] of sn.p) {
@@ -4107,7 +4425,7 @@ function netGuestUpdate(dt) {
       else if (e[0] === 'burst') burst(V(e[1]), e[2], e[3], e[4], e[5], e[6], e[7]);
       else if (e[0] === 'ring') ringFx(V(e[1]), e[2], e[3], e[4]);
       else if (e[0] === 'ripple' && G.fighters[e[1]]) guardRipple(G.fighters[e[1]]);
-      else if (e[0] === 'dmg') dmgNumber(V(e[1]), e[2], e[3]);
+      else if (e[0] === 'dmg') dmgNumber(V(e[1]), e[2], e[3], e[4]);
       else if (e[0] === 'ann') announce(e[1], e[2]);
       else if (e[0] === 'stars') roundStars(e[1], e[2], e[3]);
       else if (e[0] === 'shatter') G.pendingShatter = { x: e[1] * innerWidth, y: e[2] * innerHeight };
@@ -4229,7 +4547,8 @@ async function adsInit() {
     const st = await A.trackingAuthorizationStatus();
     if (st.status === 'notDetermined') await A.requestTrackingAuthorization();
   } catch { /* 聞けなくても広告は出せる */ }
-  try { await A.initialize({ initializeForTesting: ADS.test }); } catch { ADS.on = false; return; }
+  // ネットなしで起動すると準備に失敗する → つながったらやり直す（前は、入れ直すまで広告が出なかった）
+  try { await A.initialize({ initializeForTesting: ADS.test }); } catch { ADS.on = false; addEventListener('online', () => { ADS.on = ADS.enabled && !!ADS.plugin; adsInit(); }, { once: true }); return; }
   A.addListener('interstitialAdDismissed', () => adsDone('inter'));
   A.addListener('interstitialAdFailedToShow', () => adsDone('inter'));
   A.addListener('onRewardedVideoAdReward', () => { ADS.rewarded = true; });
@@ -4256,8 +4575,11 @@ function adsDone(kind) {
 const adsReady = kind => ADS.fake || ADS.ready[kind];
 // 広告を出して、閉じたら next(最後まで見たか) を呼ぶ。出せないときはすぐ next(false)
 function adsShow(kind, next) {
+  // 閉じた・出せなかったの知らせが来ないまま60秒たっていたら、終わったことにする（そのあと広告も復活もずっと出なくなるのを防ぐ）
+  //   古い続きの処理は呼ばない（もう先へ進んでいるので、今さら動くとおかしくなる）
+  if (ADS.done && performance.now() - (ADS.shownAt || 0) > 60000) ADS.done = null;
   if (!ADS.on || !adsReady(kind) || ADS.done) { next(false); return; }
-  ADS.rewarded = false; ADS.done = next;
+  ADS.rewarded = false; ADS.done = next; ADS.shownAt = performance.now();
   track('ad_show', { kind });
   if (ADS.fake) { fakeAd(kind); return; }
   (kind === 'inter' ? ADS.plugin.showInterstitial() : ADS.plugin.showRewardVideoAd()).catch(() => adsDone(kind));
@@ -4272,12 +4594,88 @@ function fakeAd(kind) {
   tick();
 }
 // 試合後の広告：結果画面のボタンを押したときに出して、閉じたら続きへ
+// ===== 広告なしプラン（月額320円の定期購入、2026-10-25 ユーザー）=====
+//   試合後の広告が出なくなり、復活も広告なし（回数は REVIVE_MAX のまま）。App Store Connect：グループ「広告なしプラン」・商品 bp.noads.monthly
+//   アプリ版だけ（ios/App/App/GameCenterPlugin.swift の StorePlugin）。開発中は ?storetest で見た目を確かめられる（本当には買わない）
+const LS_NOADS = 'battlephase_noads_v1';
+const STORE = { plugin: PLATFORM === 'ios' ? window.Capacitor?.Plugins?.Store : null, id: 'bp.noads.monthly', price: '月額320円', active: false };
+try { STORE.active = localStorage.getItem(LS_NOADS) === '1'; } catch {}
+if (PLATFORM === 'dev' && /[?&]storetest\b/.test(location.search)) STORE.plugin = {   // 開発用の見せかけ
+  _on: false, addListener: () => {}, products: async () => ({ products: [{ id: STORE.id, displayPrice: '¥320' }] }),
+  purchase: async function () { await new Promise(r => setTimeout(r, 600)); this._on = true; return { ok: true, active: [STORE.id] }; },
+  entitlements: async function () { return { active: this._on ? [STORE.id] : [] }; }, restore: async function () { return { active: this._on ? [STORE.id] : [] }; },
+};
+function setNoAds(on) {
+  STORE.active = !!on;
+  try { localStorage.setItem(LS_NOADS, on ? '1' : '0'); } catch {}
+  updateNoAdsUi();
+}
+function updateNoAdsUi() {
+  const b = $('noAdsGo'); if (!b) return;
+  b.hidden = !STORE.plugin;
+  $('noAdsLbl').textContent = STORE.active ? '広告なし 利用中' : '広告なし';
+}
+function updateNoAdsLink() {
+  const show = STORE.plugin && !STORE.active && mode === 'result' && !NET.role && (G.adDue || !$('reviveBtn').hidden);
+  $('noAdsLink').hidden = !show;
+  $('noAdsLink').textContent = `👑 広告を消す（${STORE.price}）`;
+}
+async function storeInit() {
+  const P = STORE.plugin; if (!P) return;
+  updateNoAdsUi();
+  try { P.addListener('entitlementChange', e => setNoAds((e.active || []).includes(STORE.id))); } catch {}
+  try { const e = await P.entitlements(); setNoAds((e.active || []).includes(STORE.id)); } catch { /* 前に覚えた状態のまま */ }
+  try { const r = await P.products({ ids: [STORE.id] }); if (r.products?.[0]) STORE.price = `月額${r.products[0].displayPrice}`; } catch {}
+}
+function openNoAds(from) {
+  track('noads_open', { from, active: STORE.active });
+  const P = STORE.plugin;
+  if (STORE.active) {
+    const box = sheet(`<b>👑 広告なしプラン 利用中</b><p>試合後の広告が出ません。勝ち抜きでは広告なしで復活できます（1回の挑戦で${REVIVE_MAX}回まで）。</p>
+      <p class="na-legal">解約・確認は iPhone の「設定」→ 一番上の自分の名前 →「サブスクリプション」からできます。</p>
+      <div class="row"><button class="tool" data-x="manage">サブスクリプションを管理</button><button class="tool sel" data-x="no">とじる</button></div>`);
+    box.querySelector('[data-x=no]').onclick = closeSheet;
+    box.querySelector('[data-x=manage]').onclick = () => window.open('https://apps.apple.com/account/subscriptions', '_blank');
+    return;
+  }
+  const box = sheet(`<b>👑 広告なしプラン</b>
+    <ul class="na-feat"><li>試合後の広告が出なくなる</li><li>勝ち抜きで、広告を見ずに復活できる（1回の挑戦で${REVIVE_MAX}回まで）</li></ul>
+    <p class="na-price">${escH(STORE.price)}</p><p style="text-align:center;font-size:13px;opacity:.85">いつでも解約できます</p>
+    <button class="big-btn gold" data-x="buy" style="min-width:0;width:100%">${escH(STORE.price)}で始める</button>
+    <div class="row"><button class="tool" data-x="restore">購入を復元</button><button class="tool" data-x="no">とじる</button></div>
+    <p class="na-legal">お支払いは Apple ID に請求されます。期間が終わる24時間前までに解約しないかぎり、1か月ごとに自動で更新されます。解約は iPhone の「設定」→ 自分の名前 →「サブスクリプション」から。
+      <a href="https://www.apple.com/legal/internet-services/itunes/dev/stdeula/" target="_blank">利用規約</a>・<a href="https://battlephase-game.vercel.app/privacy" target="_blank">プライバシーポリシー</a></p>`);
+  box.querySelector('[data-x=no]').onclick = closeSheet;
+  box.querySelector('[data-x=buy]').onclick = async e => {
+    const btn = e.currentTarget; btn.disabled = true; track('noads_buy_tap', { from });
+    try {
+      const r = await P.purchase({ id: STORE.id });
+      if (r.ok && (r.active || []).includes(STORE.id)) { setNoAds(true); track('noads_purchase', { from }); closeSheet(); toast('ありがとう！広告なしプランが始まりました 👑', 3000); updateNoAdsLink(); refreshRevive(); return; }
+      if (r.pending) toast('承認を待っています。承認されると広告がなくなります', 3200);
+    } catch { toast('購入できませんでした。少しあとでもう一度ためしてね', 3000); }
+    btn.disabled = false;
+  };
+  box.querySelector('[data-x=restore]').onclick = async () => {
+    track('noads_restore');
+    try { const r = await P.restore(); const on = (r.active || []).includes(STORE.id); setNoAds(on); toast(on ? '広告なしプランを復元しました 👑' : '復元できる購入が見つかりませんでした', 2800); if (on) { closeSheet(); updateNoAdsLink(); refreshRevive(); } }
+    catch { toast('復元できませんでした。少しあとでもう一度ためしてね', 2800); }
+  };
+}
+// プランに入ったら、結果画面の復活ボタンを広告なしに書きかえる
+function refreshRevive() {
+  const b = $('reviveBtn'); if (b.hidden || !STORE.active) return;
+  b.innerHTML = `👑 復活する<small>${G.reviveStreak}連勝からつづける（あと${REVIVE_MAX - (G.revived || 0)}回）</small>`;
+}
+$('noAdsGo').onclick = () => { sfx('select'); openNoAds('home'); };
+$('noAdsLink').onclick = () => { sfx('select'); openNoAds('result'); };
+storeInit();
 function afterMatchAd(next) { if (!G.adDue) { next(); return; } G.adDue = false; adsShow('inter', next); }
 adsInit();
 
 // 勝ち抜きモード
-const endlessLv = () => ENDLESS_LV.filter(n => G.streak >= n).length - 1;
+const endlessLv = () => G.streak % 10 === 9 ? 3 : G.streak % 10 === 8 ? 4 : G.streak >= 10 ? 2 : ENDLESS_LV.filter(n => G.streak >= n).length - 1;
 function showResult(champ) {
+  setTimeout(updateNoAdsLink, 0);   // 結果が決まってから（復活・次の広告の有無）
   const label = $('winLabel'), sub = $('winSub'), again = $('againBtn');
   $('roundStars').hidden = true;
   if (!G.watch) {
@@ -4294,7 +4692,7 @@ function showResult(champ) {
       won_ringout: rl.filter(x => x.winner === me?.team && x.how === 'ringout').length, lost_ringout: rl.filter(x => x.winner !== me?.team && x.how === 'ringout').length });
   }
   if (G.tut && champ === 0) track('tutorial_complete');
-  G.adDue = ADS.on && !G.watch && !NET.role && !G.tut && ++ADS.games % ADS.every === 0;
+  G.adDue = ADS.on && !STORE.active && !G.watch && !NET.role && !G.tut && ++ADS.games % ADS.every === 0;
   $('reviveBtn').hidden = true; $('appBtn').hidden = true;
   $('remakeBtn').hidden = false;
   $('modBtn').hidden = !NET.role;
@@ -4320,6 +4718,7 @@ function showResult(champ) {
     const isNew = G.streak > rec;
     if (isNew) saveNum(LS_STREAK, G.streak);
     noteWeekBest(G.streak); sendScore();   // 連勝ランキング（名前を登録した人だけ）
+    gcSubmit(GC_IDS.all, G.streak); gcSubmit(GC_IDS.week, G.streak);   // Game Center（サインインしている人）
     label.textContent = 'WIN!';
     $('winName').textContent = `${G.streak}連勝！`;
     sub.textContent = isNew && rec ? '🎉 自己ベスト更新中！' : `最高記録：${Math.max(rec, G.streak)}連勝`;
@@ -4330,30 +4729,76 @@ function showResult(champ) {
       $('appBtn').hidden = !APP_STORE_URL;
       again.textContent = 'もう一度 1人目から';
       G.streak = -1;   // 「もう一度」は0から
+      clearRun();
       track('web_trial_clear');
       return;
     }
     if (G.streak % 10 === 0 && G.streak / 10 < STAGES.length) sub.textContent = `🏯 第${G.streak / 10}階層クリア！つぎは第${G.streak / 10 + 1}階層「${STAGES[stageNo(G.streak)].name}」へ`;
     again.textContent = 'つぎの相手へ ▶';
     $('remakeBtn').hidden = true;
+    saveRun(false);   // ここで閉じても、つぎは続きから
   } else {
     label.textContent = 'GAME OVER';
     $('winName').textContent = `記録：${G.streak}連勝`;
     $('winName').style.color = '#ffd23f';
     sub.textContent = G.streak > 0 && G.streak >= rec ? '🎉 自己ベスト！' : rec ? `最高記録：${rec}連勝` : 'まずは1勝をめざそう！';
     again.textContent = 'もう一度挑戦';
-    if (ADS.on && G.streak > 0 && (G.revived || 0) < REVIVE_MAX && adsReady('reward')) {   // 広告が読めていないときは出さない
+    // 復活：広告なしプランの人は広告なしで。ほかの人は広告を見て（広告が読めていないときは出さない）
+    if (G.streak > 0 && (G.revived || 0) < REVIVE_MAX && (STORE.active || (ADS.on && adsReady('reward')))) {
       G.reviveStreak = G.streak;
       $('reviveBtn').hidden = false;
-      $('reviveBtn').innerHTML = `📺 広告を見て復活<small>${G.streak}連勝からつづける（あと${REVIVE_MAX - (G.revived || 0)}回）</small>`;
+      $('reviveBtn').innerHTML = `${STORE.active ? '👑 復活する' : '📺 広告を見て復活'}<small>${G.streak}連勝からつづける（あと${REVIVE_MAX - (G.revived || 0)}回）</small>`;
     }
     G.streak = -1;   // 「もう一度挑戦」で0から
+    clearRun();
   }
 }
 
+// ===== 勝ち抜きの途中の記録（アプリを閉じても連勝が残る。2026-10-23 ユーザー） =====
+// 試合の合間（結果画面・タイトル）で閉じたら、つぎに「勝ち抜き」を押すと続きから。
+// 試合の途中で閉じたら（落ちた・電源が切れたときも）、その試合は負けで連勝は終わり（負けそうなときに閉じて逃げられないように）。
+const LS_RUN = 'battlephase_run_v1';
+function loadRun() { try { const r = JSON.parse(localStorage.getItem(LS_RUN) || 'null'); return r && r.streak > 0 && r.build ? r : null; } catch { return null; } }
+function clearRun() { try { localStorage.removeItem(LS_RUN); } catch {} }
+function saveRun(inMatch) {
+  if (G.tut || !G.builds[0]) return;
+  if (G.streak <= 0) { if (!inMatch) clearRun(); return; }
+  try { localStorage.setItem(LS_RUN, JSON.stringify({ streak: G.streak, revived: G.revived || 0, build: G.builds[0], inMatch, t: Date.now() })); } catch {}
+}
+function askRun(run) {
+  const box = sheet(`<b>🏆 勝ち抜き</b><p>前回の続きがあります：<b style="color:var(--gold)">${run.streak}連勝中</b>（第${stageNo(run.streak) + 1}階層・${escH(run.build.name || '')}）</p>
+    <div class="row"><button class="tool" data-x="new">最初から</button><button class="tool sel" data-x="go">▶ つづきから</button></div>
+    <p style="font-size:12px;opacity:.8">「最初から」にすると、今の連勝は終わります（最高記録は残ります）</p>`);
+  box.querySelector('[data-x=go]').onclick = () => {
+    sfx('go'); closeSheet(); track('endless_resume', { streak: run.streak });
+    G.builds = [run.build]; G.streak = run.streak; G.revived = run.revived || 0;
+    startBattle();
+  };
+  box.querySelector('[data-x=new]').onclick = () => { sfx('select'); closeSheet(); clearRun(); updateTitleBest(); openCreator(0); };
+}
+{ // 起動したとき：前回、試合の途中で終わっていたら負けにする
+  const r = (() => { try { return JSON.parse(localStorage.getItem(LS_RUN) || 'null'); } catch { return null; } })();
+  if (r?.inMatch) {
+    clearRun();
+    track('endless_abandon', { streak: r.streak });
+    setTimeout(() => toast(`前回は勝ち抜きの試合の途中で終わったので、${r.streak}連勝で終わりました`, 3600), 1500);
+  }
+}
+
+// 練習試合：押したら CPU のつよさ（とルール）を選んでから始める（マイキャラでも同じ）
+let practiceOk = false;
+function openPractice(go) {
+  const box = sheet(`<b>⚔️ 練習試合</b><p style="font-size:13px;opacity:.85">CPU と戦って練習しよう。つよさを選んでね</p>
+    <div class="pr-opts"></div>
+    <div class="row"><button class="tool" data-x="no">もどる</button><button class="tool sel" data-x="go">${go === 'best' ? 'マイキャラで始める' : 'キャラ作りへ'} ▶</button></div>`);
+  box.querySelector('.pr-opts').append(CPU_BOX, RULE_BOX);
+  box.querySelector('[data-x=no]').onclick = () => { sfx('select'); closeSheet(); };
+  box.querySelector('[data-x=go]').onclick = () => { closeSheet(); practiceOk = true; try { document.querySelector(`[data-go=${go}]`).onclick(); } finally { practiceOk = false; } };
+}
 document.querySelectorAll('[data-go]').forEach(b => b.onclick = () => {
   sfx('select');
   const go = b.dataset.go;
+  if ((go === 'cpu' || go === 'best') && !practiceOk) { openPractice(go); return; }
   G.mode = go;   // 分析用（cpu / quick / best など）
   track('menu_select', { item: go });
   G.watch = go === 'watch';
@@ -4362,7 +4807,7 @@ document.querySelectorAll('[data-go]').forEach(b => b.onclick = () => {
   G.rule = go === 'cpu' || go === 'best' ? G.cpuRule : 'duel';
   if (go === 'tutorial') { startTutorial(); return; }
   if (go === 'online') { if (PLATFORM === 'ios' && !ONLINE_IN_APP) return; openOnline(); return; }
-  if (go === 'endless') { G.vsCPU = true; openCreator(0); return; }
+  if (go === 'endless') { G.vsCPU = true; const run = loadRun(); if (run && !G.streak) { askRun(run); return; } openCreator(0); return; }
   if (go === 'best') {
     const best = loadBest(); if (!best) return;
     G.vsCPU = true; G.builds = [best];
@@ -4413,6 +4858,11 @@ $('againBtn').onclick = () => {
 // 勝ち抜きで負けたとき：広告を最後まで見たら、同じ相手ともう一度（連勝はそのまま）
 $('reviveBtn').onclick = () => {
   sfx('go');
+  if (STORE.active) {   // 広告なしプラン：そのまま復活
+    track('revive', { streak: G.reviveStreak, noads: true });
+    G.revived = (G.revived || 0) + 1; G.adDue = false; G.streak = G.reviveStreak;
+    startBattle(); return;
+  }
   if (!adsReady('reward')) { toast('広告を読みこみ中…少し待ってからもう一度おしてね', 2200); return; }
   adsShow('reward', ok => {
     if (!ok) { toast('広告を最後まで見ると復活できます', 2200); return; }
@@ -4421,6 +4871,8 @@ $('reviveBtn').onclick = () => {
     startBattle();
   });
 };
+if (IS_WEB && APP_STORE_URL) $('homeAppGo').hidden = false;
+$('homeAppGo').onclick = () => { sfx('select'); track('web_to_app', { from: 'home' }); window.open(APP_STORE_URL, '_blank'); };
 $('appBtn').onclick = () => { sfx('select'); track('web_to_app'); if (APP_STORE_URL) window.open(APP_STORE_URL, '_blank'); };
 $('tutSkip').onclick = () => {
   if (G.tut) track('tutorial_skip', { step: G.tut.step });
@@ -4437,7 +4889,7 @@ $('btnLayoutBtn').onclick = () => { sfx('select'); openBtnEditor(() => buildTouc
 $('setBtnLayout').onclick = () => { sfx('select'); openBtnEditor(); };
 $('setBack').onclick = () => { sfx('select'); show('title'); };
 $('pauseBtn').onclick = () => { if (mode === 'battle' && !G.paused) togglePause(); };
-$('quitBtn').onclick = () => { G.paused = false; G.watch = false; G.endless = false; endTutorial(); netClose(); goTitle(); };
+$('quitBtn').onclick = () => { if (G.endless) clearRun(); G.paused = false; G.watch = false; G.endless = false; endTutorial(); netClose(); goTitle(); };
 
 function cleanupBattle() {
   buildTouch([]);
@@ -4455,7 +4907,8 @@ function cleanupBattle() {
 }
 function updateTitleBest() {
   const rec = loadNum(LS_STREAK, 0);
-  $('endlessRec').textContent = rec ? `最高記録 ${rec}連勝` : '';
+  const run = loadRun();
+  $('endlessRec').textContent = run ? `つづき：${run.streak}連勝中` : rec ? `最高記録 ${rec}連勝` : '';
   const best = loadBest();
   $('bestGo').hidden = !best;
   $('bestName').textContent = best ? best.name : '';
@@ -4475,13 +4928,37 @@ function goTitle() {
    メインループ
    ========================================================= */
 const clock = new THREE.Clock();
-const QUALITY = { pr: renderer.getPixelRatio?.() ?? 1, sum: 0, n: 0 };
+// 重い端末（古い iPad など）は自動で軽くする。試合中の平均が毎秒48コマを下回るたびに1段ずつ：
+//   ①画面の細かさを 0.25 ずつ端末の標準（1倍）まで ②影を消す ③画面の細かさを 0.75倍に
+//   下げた段は端末に覚えておき、次に起動したときは最初からその軽さで始める（2026-10-23 ユーザー「古めの iPad Pro がちょっとカクつく」）
+const LS_QUALITY = 'battlephase_quality_v1';
+const QUALITY = { pr: renderer.getPixelRatio?.() ?? 1, lv: 0, sum: 0, n: 0 };
+function setShadows(on) {
+  renderer.shadowMap.enabled = on;
+  for (const sc of [scene, pScene]) sc.traverse(o => { if (o.material) for (const m of [].concat(o.material)) m.needsUpdate = true; });   // 影の有無はシェーダーの作り直しが要る
+}
+function applyQuality() {
+  renderer.setPixelRatio(QUALITY.pr); renderer.setSize(innerWidth, innerHeight);
+  if (QUALITY.lv >= 1 && renderer.shadowMap.enabled) setShadows(false);
+}
+{ // 前に下げた設定があれば、最初からその軽さで
+  let q = null; try { q = JSON.parse(localStorage.getItem(LS_QUALITY) || 'null'); } catch {}
+  if (q && q.pr > 0) { QUALITY.pr = Math.min(QUALITY.pr, q.pr); QUALITY.lv = q.lv | 0; renderer.setPixelRatio(QUALITY.pr); renderer.setSize(innerWidth, innerHeight); if (QUALITY.lv >= 1) renderer.shadowMap.enabled = false; }
+}
 function autoQuality(raw) {
+  if (SHOOT) return;   // 撮影は画質を落とさない
   if (mode !== 'battle' || G.paused || document.hidden || raw > 0.25) { QUALITY.sum = QUALITY.n = 0; return; }
   QUALITY.sum += raw; QUALITY.n++;
   if (QUALITY.sum < 2) return;
   const avg = QUALITY.sum / QUALITY.n; QUALITY.sum = QUALITY.n = 0;
-  if (avg > 1 / 48 && QUALITY.pr > 1) { QUALITY.pr = Math.max(1, QUALITY.pr - 0.25); renderer.setPixelRatio(QUALITY.pr); renderer.setSize(innerWidth, innerHeight); }
+  if (avg <= 1 / 48) return;
+  if (QUALITY.pr > 1) QUALITY.pr = Math.max(1, QUALITY.pr - 0.25);
+  else if (QUALITY.lv === 0) QUALITY.lv = 1;
+  else if (QUALITY.lv === 1) { QUALITY.lv = 2; QUALITY.pr = Math.min(QUALITY.pr, 0.75); }
+  else return;
+  applyQuality();
+  try { localStorage.setItem(LS_QUALITY, JSON.stringify({ pr: QUALITY.pr, lv: QUALITY.lv })); } catch {}
+  track('quality_down', { pr: QUALITY.pr, lv: QUALITY.lv, fps: Math.round(1 / avg) });
 }
 function loop() {
   requestAnimationFrame(loop);
@@ -4513,11 +4990,13 @@ function loop() {
 }
 initAnalytics();
 track('app_open');   // リテンション（何日後に戻ってきたか）はこのイベントで数える
+checkLastRun();
 setupTitleDemo();
 updateTitleBest();
 document.body.classList.add('ready');
 loop();
 if (location.hash === '#watch') document.querySelector('[data-go=watch]').click();
+if (SHOOT) { renderer.setPixelRatio(+SHOOT.pr || 2); renderer.setSize(innerWidth, innerHeight); setTimeout(() => document.querySelector('[data-go=watch]').onclick(), 600); }
 </script>
 </body>
 </html>
